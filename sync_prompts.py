@@ -6,7 +6,7 @@ from datetime import datetime
 
 # --- CONFIGURAÇÃO ---
 # 1. URL do seu Webhook n8n
-WEBHOOK_URL = "https://logic.runoncore.com/app_test/atualizar-prompts-lojas"
+WEBHOOK_URL = "https://logic.runoncore.com/app/atualizar-prompts-lojas"
 
 # 2. Sua chave de segurança (exatamente como configurou no n8n)
 API_KEY = "rogerioclemildabeatrizmiguel"
