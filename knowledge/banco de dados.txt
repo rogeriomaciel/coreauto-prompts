@@ -1,0 +1,97 @@
+Este é o **Documento de Arquitetura de Dados** do **CoreAutoCRM**. Ele foi desenhado para ser o alicerce de um sistema SaaS escalável, focado em soberania operacional, verdade absoluta e redução drástica de esforço humano.
+
+---
+
+## 📋 Documentação do Banco de Dados: CoreAutoCRM
+
+### 1. Entidades de Estrutura e Controle (Multitenancy)
+
+#### Tabela: `oficinas`
+
+Responsável por isolar os dados de cada cliente SaaS e definir a identidade da **CORA**.
+
+* **`id`** (UUID, PK): Identificador único da oficina.
+* **`nome`** (VARCHAR): Nome comercial da oficina.
+* **`whatsapp_oficina`** (VARCHAR, Unique): O número de telefone receptor. É a chave que a CORA usa para saber em qual contexto de empresa ela está operando.
+* **`config_json`** (JSONB): Regras de negócio (valor de hora técnica, termos de garantia, horários de funcionamento).
+* **`created_at`** (Timestamp): Data de adesão ao sistema.
+
+#### Tabela: `knowledge_base`
+
+O "Cérebro" de apoio da CORA. Armazena a verdade factual extraída de documentos (Google Drive).
+
+* **`id`** (UUID, PK): Identificador do conhecimento.
+* **`oficina_id`** (FK -> `oficinas`): Vínculo com a oficina dona do dado.
+* **`categoria`** (VARCHAR): Ex: 'preços', 'FAQ', 'procedimentos'.
+* **`conteudo`** (TEXT): O dado textual processado.
+* **`autorizado_em`** (Timestamp, Nullable): Se nulo, a CORA não usa. Só é preenchido quando o dono valida no sistema.
+* **`fonte_arquivo`** (VARCHAR): Nome ou link do arquivo original para auditoria.
+
+---
+
+### 2. Entidades de Personagens e Ativos
+
+#### Tabela: `pessoas`
+
+Unificação de todos os perfis que interagem com a CORA.
+
+* **`id`** (UUID, PK): Identificador único.
+* **`oficina_id`** (FK -> `oficinas`): Oficina à qual esta pessoa está vinculada.
+* **`nome`** (VARCHAR): Nome da pessoa.
+* **`whatsapp`** (VARCHAR, Unique): Número de telefone (chave de reconhecimento).
+* **`tipo`** (Enum): `'cliente'`, `'atendente'`, `'mecanico'`. (Novos números são criados como `'cliente'` por padrão).
+* **`contexto_memoria`** (JSONB): Onde mora a **Mente Dupla**. Armazena o `resumo_historico` (longo prazo) e o array de `conversas_recentes` (curto prazo) para a IA.
+* **`status`** (VARCHAR): `'ativo'`, `'inativo'`.
+
+#### Tabela: `veiculos`
+
+O histórico técnico de cada máquina atendida.
+
+* **`id`** (UUID, PK): Identificador do veículo.
+* **`cliente_id`** (FK -> `pessoas`): O proprietário atual.
+* **`placa`** (VARCHAR, Unique): A "identidade" do carro no sistema.
+* **`marca`**, **`modelo`**, **`ano`**, **`cor`** (VARCHAR).
+* **`km_atual`** (Integer): Última quilometragem registrada.
+* **`metadata`** (JSONB): Observações específicas (ex: "detalhe na pintura").
+
+---
+
+### 3. Entidades de Operação e Execução
+
+#### Tabela: `ordens_servico` (O Contrato de Missão)
+
+* **`id`** (UUID, PK): Identificador da O.S.
+* **`veiculo_id`** (FK -> `veiculos`): O veículo objeto da missão.
+* **`cliente_id`** (FK -> `pessoas`): O cliente pagador.
+* **`status`** (VARCHAR): Ciclo de vida (`'triagem'`, `'orcamento_pendente'`, `'aguardando_aprovacao_cliente'`, `'aguardando_validacao_atendente'`, `'em_execucao'`, `'finalizado'`).
+* **`descricao_problema`** (TEXT): O sintoma relatado.
+* **`orcamento_json`** (JSONB): Itens de peça e mão de obra aprovados.
+* **`valor_total`** (Decimal).
+* **`data_entrada`**, **`data_conclusao`** (Timestamp).
+
+#### Tabela: `os_eventos` (A Linha do Tempo Factual)
+
+Fundida para registrar atribuições, micro-passos e mídias.
+
+* **`id`** (UUID, PK): Identificador do evento.
+* **`os_id`** (FK -> `ordens_servico`): OS vinculada.
+* **`pessoa_id`** (FK -> `pessoas`): Quem gerou a ação (Mecânico, Atendente ou Cliente).
+* **`tipo_evento`** (Enum): `'atribuicao'`, `'checklist_progresso'`, `'validacao'`, `'finalizacao'`, `'comunicacao'`.
+* **`descricao`** (TEXT): Descrição da ação ou transcrição do áudio.
+* **`audio_base64`** (TEXT): O dado binário bruto do áudio recebido.
+* **`origem`** (Enum): `'whatsapp'`, `'sistema'`.
+* **`mensagem_id`** (VARCHAR): ID de rastreio da mensagem original.
+* **`contexto_json`** (JSONB): Metadados técnicos extras.
+* **`data_registro`** (Timestamp).
+
+---
+
+### 💡 Observações de Arquitetura
+
+1. **Segurança**: A transição do status `'aguardando_aprovacao_cliente'` para `'em_execucao'` exige obrigatoriamente um evento de `tipo_evento = 'validacao'` inserido por uma pessoa do tipo `'atendente'`.
+2. **Performance**: A CORA nunca lê a tabela inteira de `os_eventos` para responder ao cliente. Ela lê o `contexto_memoria` da tabela `pessoas`, que é compactado periodicamente.
+3. **Auditabilidade**: O campo `audio_base64` garante que a voz original do mecânico ou cliente seja preservada como prova de verdade absoluta, mesmo após a transcrição.
+
+---
+
+Este documento serve como o mapa mestre para a nossa construção no n8n. **Deseja que eu gere os scripts SQL de criação dessas tabelas agora para você já rodar no seu banco de dados?**

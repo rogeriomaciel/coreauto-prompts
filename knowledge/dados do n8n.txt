@@ -1,0 +1,87 @@
+Para que o **CoreAutoCRM** funcione com a precisão que você exige, a arquitetura no n8n será dividida em **motores independentes**. Isso evita o "workflow faz-tudo" e garante que, se um processo falhar, o atendimento e o dashboard não parem.
+
+Aqui está a documentação técnica da implementação no n8n:
+
+---
+
+## 🏗️ Arquitetura de Workflows n8n
+
+### 1. Motor de Recepção (O "Porteiro")
+
+**Objetivo:** Receber o sinal bruto e higienizar os dados para a CORA.
+
+* **Entrada:** Webhook da Evolution API.
+* **Processamento:**
+* **Identificação:** Consulta as tabelas `oficinas` (pelo número receptor) e `pessoas` (pelo número remetente). Se não existir, cria o registro como 'cliente'.
+* **Tratamento de Áudio:** Se for áudio, converte para Base64, envia para transcrição (Whisper ou Gemini) e salva na tabela `os_eventos`.
+* **Debounce (Agrupador):** Um nó de *Code* aguarda 5 segundos para agrupar mensagens picadas em um único contexto.
+
+
+* **Saída:** Dispara o próximo workflow via Webhook interno com o `ID da Pessoa`, `ID da Oficina` e o `Texto Final`.
+
+---
+
+### 2. Motor de Inteligência (A CORA)
+
+**Objetivo:** Decidir o que fazer e responder com a **Verdade Absoluta**.
+
+* **Entrada:** Dados higienizados do Motor 1.
+* **Processamento:**
+* **Busca de Contexto:** Recupera o `contexto_memoria` da pessoa e a `knowledge_base` autorizada da oficina.
+* **Nó de IA (Gemini):** O prompt orienta a CORA a analisar se é uma dúvida, uma ordem de serviço ou uma interação entre personagens (atendente/mecânico).
+* **Roteador de Comandos:** A CORA responde em um JSON estruturado com: `mensagem_texto`, `acao_banco` (ex: criar_os, atualizar_status) e `destinatario_final` (caso seja o "telefone sem fio").
+
+
+* **Saída:** Atualiza o banco de dados e envia a resposta para o WhatsApp.
+
+---
+
+### 3. Motor de API do Dashboard (O "Servidor")
+
+**Objetivo:** Servir os dados para o painel em React.
+
+* **Entrada:** Requisições HTTP (GET/POST) vindo do Dashboard.
+* **Endpoints:**
+* **`GET /status`:** Retorna o resumo (KPIs) da oficina (OS abertas, aguardando validação).
+* **`GET /timeline`:** Retorna os eventos da tabela `os_eventos` (incluindo o Base64 do áudio para o player do React).
+* **`POST /validar`:** O atendente clica no Dashboard, o n8n recebe e altera o status da OS no banco para liberar o mecânico.
+
+
+* **Segurança:** Verifica um Token de Autenticação no Header da requisição.
+
+---
+
+### 4. Motor de Notificação Ativa (O "Mensageiro")
+
+**Objetivo:** Fazer a ponte entre os personagens e gerar o "Efeito Uau!".
+
+* **Entrada:** Trigger de alteração no banco de dados (Update na tabela `ordens_servico` ou `os_eventos`).
+* **Ações:**
+* **Aprovação Cliente:** Notifica o Atendente que há um orçamento aprovado para validar.
+* **Validação Atendente:** Notifica o Mecânico que o serviço está liberado.
+* **Micro-passo Mecânico:** Envia mensagem automática ao Cliente informando o progresso técnico.
+
+
+
+---
+
+### 5. Motor de Manutenção e Memória (O "Arquivista")
+
+**Objetivo:** Manter o sistema rápido, barato e inteligente.
+
+* **Rotina A (Compactação):** Roda quando o histórico de conversas fica longo. Resume os pontos principais e limpa as mensagens antigas no campo `contexto_memoria`.
+* **Rotina B (Sincronização):** Varre a pasta do Google Drive, processa novos documentos e insere na `knowledge_base` como "não autorizado" para revisão do dono.
+
+---
+
+## 🛠️ Resumo Técnico de Fluxo
+
+1. **O cliente manda um áudio.**
+2. O **Motor 1** salva o áudio (Base64), transcreve e avisa que é um cliente da Oficina X.
+3. O **Motor 2** (CORA) entende que é um sintoma, cria uma OS no banco e avisa o Atendente.
+4. O **Motor 3** (API) entrega essa nova OS para o seu painel em React em tempo real.
+5. O **Motor 4** garante que todos os envolvidos recebam o alerta no WhatsApp.
+
+Este desenho é **sem enrolação**: modular, seguro e focado na sua soberania operacional.
+
+**Gostaria que eu gerasse o código do primeiro nó do Motor 1 (o agrupador de mensagens em JavaScript) para você já testar no seu n8n?**

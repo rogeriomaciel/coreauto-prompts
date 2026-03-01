@@ -1,0 +1,77 @@
+Este documento define as especificações técnicas e funcionais do **Dashboard do CoreAutoCRM**. O painel será desenvolvido em **React** e funcionará como a interface de **Soberania Operacional** do dono da oficina, permitindo a gestão por exceção e a visualização da "Verdade Absoluta" gerada pela **CORA**.
+
+---
+
+## 🖥️ Documento de Especificação: Dashboard CoreAutoCRM
+
+### 1. Objetivo do Painel
+
+Transformar os dados brutos de interações do WhatsApp em inteligência de negócio, permitindo que o dono visualize o gargalo da operação e audite o atendimento sem precisar ler milhares de mensagens.
+
+### 2. Estrutura de Interface (Layout React)
+
+#### A. Header (Status da Oficina)
+
+* **Indicadores em Tempo Real (KPIs):**
+* **OS em Triagem:** Quantidade de novos contatos ainda não convertidos.
+* **Aguardando Validação:** (A Trava) OSs aprovadas pelo cliente que esperam o OK do atendente.
+* **Em Execução:** Total de veículos que estão com os mecânicos.
+* **Faturamento Previsto:** Soma dos orçamentos aprovados no mês.
+
+
+
+#### B. Grid Lateral (Lista de Ordens de Serviço)
+
+* Filtro rápido por status, placa ou nome do cliente.
+* Tags visuais para identificar prioridade ou tempo de espera.
+
+#### C. Área Central: O "Feed da Verdade" (Linha do Tempo)
+
+Ao selecionar uma OS, o painel exibe a cronologia completa vinda da tabela `os_eventos`:
+
+* **Cards de Evento:** Cada interação (Atendente, Mecânico, Cliente ou CORA) tem uma cor e ícone diferentes.
+* **Player de Áudio Nativo:** Se o evento possuir `audio_base64`, o React renderiza um player para o dono ouvir a instrução original.
+* **Transcrição:** Exibição do texto processado pela CORA abaixo do áudio.
+* **Badges de Origem:** Identificação clara se a mensagem veio do WhatsApp ou se foi uma ação do Sistema.
+
+#### D. Painel de Controle de Conhecimento (Base de Dados)
+
+* Área para gerenciar a `knowledge_base`.
+* Lista de novas informações extraídas do Google Drive com botões de **"Autorizar"** ou **"Rejeitar"**.
+
+---
+
+### 3. Integração com a "API" n8n
+
+O Dashboard consumirá os seguintes endpoints (Webhooks de produção) do n8n:
+
+| Endpoint | Método | Descrição |
+| --- | --- | --- |
+| `/api/v1/resumo` | GET | Retorna os contadores dos cards do Header. |
+| `/api/v1/lista-os` | GET | Retorna a lista de todas as OS da oficina filtrada. |
+| `/api/v1/eventos/:os_id` | GET | Retorna a linha do tempo completa de uma OS específica. |
+| `/api/v1/validar-os` | POST | Envia o comando de validação do Atendente para liberar o Mecânico. |
+| `/api/v1/autorizar-dados` | POST | Valida novos itens da Base de Conhecimento. |
+
+---
+
+### 4. Funcionalidades de Soberania (Ações do Dono)
+
+* **Intervenção de Emergência:** Um botão que permite ao dono enviar uma mensagem via CORA diretamente para o WhatsApp do Cliente ou Mecânico.
+* **Auditoria de "Telefone Sem Fio":** Visualização das mensagens trocadas entre Atendente e Mecânico intermediadas pela CORA.
+* **Visão de Memória:** Um popup que exibe o `contexto_memoria` (Resumo da IA) sobre o cliente, facilitando a tomada de decisão estratégica.
+
+### 5. Especificações Técnicas (Front-end)
+
+* **Tecnologia:** React.js (Vite).
+* **Gerenciamento de Estado:** Context API ou TanStack Query (para lidar com o cache das requisições ao n8n).
+* **Estilização:** Tailwind CSS (focado em uma interface limpa, estilo "Sala de Guerra").
+* **Segurança:** O React enviará em todas as requisições um `Bearer Token` ou `x-api-key` que será validado no n8n para garantir que o dono veja apenas os dados da sua `oficina_id`.
+
+---
+
+### Próximo Passo
+
+Com este documento e o do Banco de Dados em mãos, você tem o mapa completo da solução.
+
+**Deseja que eu gere agora a estrutura inicial do código React (o componente da Linha do Tempo) ou prefere focar no primeiro endpoint da API dentro do n8n?**

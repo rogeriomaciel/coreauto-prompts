@@ -1,0 +1,93 @@
+Este documento detalha a infraestrutura técnica necessária para sustentar o ecossistema **CoreAutoCRM**. O foco aqui é **Soberania Operacional**, segurança de dados e baixo custo de manutenção, utilizando uma arquitetura baseada em containers e serviços escaláveis.
+
+---
+
+## 🏗️ Documento de Infraestrutura: CoreAutoCRM
+
+### 1. Visão Geral da Arquitetura
+
+A infraestrutura será híbrida, utilizando serviços de nuvem (AWS/DigitalOcean/Hetzner) para garantir disponibilidade 24/7, conectando o WhatsApp à inteligência do Gemini e ao front-end em React.
+
+### 2. Camadas da Pilha Técnica (Tech Stack)
+
+#### A. Camada de Servidor (Hospedagem)
+
+* **Provedor Sugerido:** VPS (Ubuntu Server 22.04 LTS).
+* **Orquestração:** Docker + Docker Compose.
+* *Por que?* Permite subir e descer todo o sistema (n8n, Banco de Dados, API) de forma idêntica em qualquer servidor, facilitando backups e migrações.
+
+
+
+#### B. Camada de Dados (Persistência)
+
+* **Banco de Dados:** **PostgreSQL 15+**.
+* Responsável por armazenar as tabelas de `pessoas`, `oficinas`, `veículos`, `OS` e o log de `eventos`.
+* **Extensão pgvector (Opcional):** Para futuras buscas semânticas na `knowledge_base`.
+
+
+* **Armazenamento de Binários (Áudios):** * Inicialmente salvo como `BASE64` no Postgres para simplificar.
+* *Evolução:* Armazenamento em S3 Compatível (MinIO ou AWS S3) se o volume de áudios crescer muito.
+
+
+
+#### C. Camada de Integração (O motor)
+
+* **n8n (Versão Self-hosted):** Instalado via Docker.
+* Gerencia os 5 motores (Recepção, Decisão, API, Notificação e Manutenção).
+
+
+* **Evolution API:** Gateway para conexão com o WhatsApp.
+* É a ponte entre o WhatsApp e o n8n. Suporta recebimento de áudios, mídias e mensagens de grupo.
+
+
+
+#### D. Camada de Inteligência (IA)
+
+* **Google Gemini API (1.5 Flash):** * Utilizado para transcrição de áudio, tomada de decisão da CORA e compactação de memória.
+* *Motivo:* Janela de contexto imensa e custo-benefício superior para processamento de texto e áudio.
+
+
+
+#### E. Camada de Front-end (Dashboard)
+
+* **Hospedagem:** Vercel, Netlify ou diretamente no Nginx do servidor VPS.
+* **Comunicação:** Consome os Webhooks do n8n (Motor 3 - API).
+
+---
+
+### 3. Mapa de Fluxo de Dados
+
+1. **Entrada:** WhatsApp → Evolution API → Webhook n8n.
+2. **Processamento:** n8n → Gemini API (Transcrição/Lógica) → PostgreSQL (Escrita).
+3. **Saída Operacional:** n8n → Evolution API → WhatsApp (Cliente/Mecânico/Atendente).
+4. **Visualização:** Dashboard React ↔ n8n API (Motor 3) ↔ PostgreSQL (Leitura).
+
+---
+
+### 4. Segurança e Backup (A Trava da Verdade)
+
+* **Certificados SSL:** Let's Encrypt (via Traefik ou Nginx Proxy Manager) para garantir que todas as requisições entre o React e o n8n sejam criptografadas (HTTPS).
+* **Backup de Banco de Dados:** Rotina automatizada (via n8n ou script Cron) que gera um dump do Postgres e envia para o Google Drive ou GitHub de forma privada.
+* **Firewall (UFW):** Apenas as portas estritamente necessárias (80, 443, 22) abertas. O banco de dados fica fechado para o mundo, acessível apenas internamente pelos containers.
+
+---
+
+### 5. Escalabilidade (SaaS Ready)
+
+Para transformar isso em um SaaS onde você vende para outras oficinas:
+
+1. **Isolamento de Dados:** Já garantido pela coluna `oficina_id` em todas as tabelas.
+2. **Múltiplas Instâncias:** A Evolution API permite criar uma "instância" de WhatsApp para cada oficina cliente.
+3. **Performance:** O uso do n8n modular permite aumentar a memória do servidor conforme o número de oficinas cresce.
+
+---
+
+### Resumo de Custos Estimados (Início)
+
+* **VPS (4GB RAM / 2 vCPU):** ~$10 - $20/mês.
+* **Gemini API:** Pay-as-you-go (Geralmente centavos de dólar para o volume de uma oficina).
+* **Hospedagem React:** Grátis (Vercel/Netlify).
+
+Este é o esqueleto que sustenta o **CoreAutoCRM**. Com este documento, você tem a lista de compras para começar a subir o ambiente.
+
+**Deseja que eu prepare o arquivo `docker-compose.yml` inicial para você subir o n8n e o Postgres no seu servidor?**
