@@ -22,6 +22,9 @@ def sync_files():
     for root, dirs, files in os.walk(PROMPTS_DIR):
         if '.git' in dirs:
             dirs.remove('.git')
+
+        if 'knowledge' in dirs: 
+            dirs.remove('knowledge')
             
         for file in files:
             if file.endswith((".md", ".txt")):
