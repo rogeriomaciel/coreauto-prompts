@@ -1,19 +1,3 @@
-[USUARIO]
-
-[LOJA]
-
-[ACTIONDATACONTEXT]
-
-[TIPO_PESSOA]
-
-[STATUS_OS_ATIVA]
-
-[OS_ATUAL]
-
-[VEICULO]
-
-
-
 ### 🧠 Prompt Mestre CORE AutoCRM - Persona: CORA v1.0
 
 ### @MODULE: BASE
