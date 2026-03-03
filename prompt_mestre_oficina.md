@@ -489,4 +489,146 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "actionDataContext": {}
 > }
 > ```
-### @END_MODULE 
+### @END_MODULE
+
+
+### @MODULE: DOCUMENTACAO
+# 🔌 Contrato de Interface: n8n ↔ Prompt Mestre (CORA)
+
+Este documento define as variáveis obrigatórias de **Entrada (Injeção)** e o mapeamento de **Saída (Processamento)** para o motor de estados da CORA.
+
+---
+
+## 1. O CONTRATO DE ENTRADA (Pré-Processamento)
+Antes de chamar o nó da LLM, o n8n deve buscar estes dados no PostgreSQL e substituir os placeholders no texto do prompt.
+
+### A. Variáveis Globais (Sempre Obrigatórias)
+| Placeholder | Tipo de Dado | Origem / Descrição |
+| :--- | :--- | :--- |
+| `[DATA_HORA_DO_SISTEMA]` | String (ISO) | `{{ $now }}`. Essencial para a IA saber se é "bom dia" ou "boa tarde" e calcular prazos. |
+| `[HISTORICO_DA_CONVERSA]` | String (Texto) | As últimas 10-15 mensagens formatadas como "Agente: ... \n Usuário: ...". |
+| `[USUARIO]` | JSON String | Objeto completo da tabela `pessoas` (incluindo `id`, `nome`, `tipo` e `contexto_memoria`). |
+| `[LOJA]` | JSON String | Objeto da tabela `oficinas` (incluindo `nome`, `config_json` e regras de negócio). |
+| `[TIPO_PESSOA]` | String | `'cliente'`, `'mecanico'` ou `'atendente'`. Extraído de `[USUARIO].tipo`. |
+| `[ACTIONDATACONTEXT]` | JSON String | O "Rascunho" da memória de curto prazo. Vem de `[USUARIO].contexto_memoria.actionDataContext`. |
+| `[MENSAGEM DO USUARIO]` | String | O texto ou transcrição do áudio atual. |
+
+### B. Variáveis de Estado (Dependem do Contexto)
+Estas variáveis podem ser `null` ou vazias dependendo do momento da jornada.
+
+| Placeholder | Lógica de Preenchimento (n8n) |
+| :--- | :--- |
+| `[STATUS_OS_ATIVA]` | Buscar na tabela `ordens_servico` se existe uma OS aberta para este usuário (que não esteja 'finalizada' ou 'cancelada'). Retornar o `status` ou `null`. |
+| `[OS_ATUAL]` | Se houver OS ativa, injetar o JSON completo da OS (incluindo `orcamento_json`, `descricao_problema`, `id`). |
+| `[VEICULO]` | Se houver OS ativa, injetar o JSON do veículo vinculado. Se não, tentar buscar pelo `placa` mencionada na conversa anterior. |
+| `[VEICULOS]` | **Apenas para Clientes:** Array JSON com todos os veículos cadastrados na tabela `veiculos` onde `cliente_id = [USUARIO].id`. |
+| `[LISTA_TAREFAS]` | **Apenas para Equipe (Sem OS Ativa):** JSON Array com as pendências. <br>Atendente: `SELECT * FROM os WHERE status IN ('pre_os', 'aguardando_vistoria')`. <br>Mecânico: `SELECT * FROM os WHERE status IN ('em_diagnostico', 'em_execucao')`. |
+| `[LINK_GDRIVE]` | **Apenas no módulo INGESTAO:** Se o usuário mandou um link na msg anterior, extrair via Regex e injetar. |
+| `[ARQUIVOS_ENCONTRADOS]` | **Apenas no módulo INGESTAO:** Resultado da chamada de API do Google Drive (lista de nomes de arquivos). |
+| `{{dados_knowledge_base}}` | **Apenas no módulo QA:** Resultado da busca vetorial (pgvector) baseada na pergunta do usuário. |
+
+---
+
+## 2. O CONTRATO DE SAÍDA (Pós-Processamento)
+O n8n deve fazer um **Switch** baseado no campo `controlAction` do JSON retornado pela IA.
+
+### 🔄 Ações de Fluxo (Sem alteração de banco)
+
+#### `CONTINUAR_CONVERSA`
+*   **O que fazer:** Apenas enviar o `userMessage` para o WhatsApp do usuário.
+*   **Atualizar Contexto:** Salvar `actionDataContext` no `contexto_memoria` do usuário.
+
+#### `ROTEAR_MODULO`
+*   **O que fazer:** **NÃO** responder ao usuário.
+*   **Loop:** Atualizar a variável de controle `faseCore` com o valor de `nextState` e executar o prompt novamente (Loop Interno).
+
+#### `VOLTAR_LOBBY`
+*   **O que fazer:** Limpar a variável de sessão que segura o ID da OS ativa.
+*   **Resposta:** Enviar `userMessage` confirmando a saída.
+*   **Próximo Estado:** O usuário cairá no `LOBBY_OPERACIONAL` na próxima interação.
+
+---
+
+### 💾 Ações de Banco de Dados (Transacionais)
+
+#### `SELECIONAR_OS_TRABALHO`
+*   **Input da IA:** `actionData.os_id_selecionada`.
+*   **Ação n8n:** Definir este ID como a "OS Ativa" na sessão do usuário (Redis ou Memória do n8n).
+*   **Próximo Passo:** Rodar o prompt novamente (agora com `[OS_ATUAL]` preenchido) para entrar no módulo correto.
+
+#### `REGISTRAR_PRE_OS`
+*   **Input da IA:** `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`.
+*   **Ação n8n:**
+    1. `UPSERT` na tabela `veiculos` (se a placa não existir, cria).
+    2. `INSERT` na tabela `ordens_servico` com status `'pre_os'`.
+    3. `INSERT` na tabela `os_eventos` (tipo: 'criacao').
+*   **Notificação:** Enviar alerta para o WhatsApp dos Atendentes ("Nova pré-OS criada").
+
+#### `INICIAR_DIAGNOSTICO`
+*   **Input da IA:** `observacoes_recepcao`.
+*   **Ação n8n:**
+    1. `UPDATE` na OS para status `'em_diagnostico'`.
+    2. `INSERT` evento na timeline.
+*   **Notificação:** Enviar alerta para os Mecânicos ("Veículo liberado para diagnóstico").
+
+#### `REGISTRAR_DIAGNOSTICO`
+*   **Input da IA:** `itens_pecas` (Array), `tempo_mao_de_obra`, `km_veiculo`.
+*   **Ação n8n:**
+    1. `UPDATE` na OS atualizando o `orcamento_json` (rascunho) e `km_veiculo`.
+    2. `UPDATE` status para `'aguardando_precificacao'` (ou similar, para o atendente ver).
+*   **Notificação:** Enviar alerta para o Atendente ("Diagnóstico concluído, precificar agora").
+
+#### `REGISTRAR_APROVACAO_CLIENTE`
+*   **Input da IA:** `status_aprovacao`.
+*   **Ação n8n:**
+    1. `UPDATE` status para `'em_execucao'`.
+    2. `INSERT` evento de aprovação.
+*   **Notificação:** Enviar alerta para o Mecânico ("Serviço Aprovado! Pode começar").
+
+#### `ADICIONAR_PROGRESSO_OS`
+*   **Input da IA:** `descricao_progresso`.
+*   **Ação n8n:** `INSERT` na tabela `os_eventos` (tipo: 'checklist_progresso').
+*   **Notificação:** (Opcional) Enviar mensagem template para o Cliente ("Seu carro está sendo cuidado...").
+
+#### `REGISTRAR_CONCLUSAO_MECANICO`
+*   **Input da IA:** `status_tecnico`.
+*   **Ação n8n:** `UPDATE` status para `'aguardando_vistoria'`.
+*   **Notificação:** Enviar alerta para o Atendente ("Carro pronto, validar qualidade").
+
+#### `VALIDAR_ENTREGA`
+*   **Input da IA:** `status_vistoria`.
+*   **Ação n8n:**
+    1. `UPDATE` status para `'aguardando_pagamento'`.
+    2. Gerar Payload Pix (Integração Bancária/Asaas - Opcional).
+*   **Notificação:** Enviar mensagem para o Cliente ("Seu carro está pronto! Total: R$ X. Chave Pix: Y").
+
+#### `FINALIZAR_OS`
+*   **Input da IA:** `intencao_retirada`.
+*   **Ação n8n:**
+    1. `UPDATE` status para `'finalizado'`.
+    2. `UPDATE` data de conclusão.
+*   **Resposta:** Agradecimento final e solicitação de avaliação (NPS).
+
+---
+
+### 📂 Ações de Gestão de Conhecimento
+
+#### `VERIFICAR_PASTA_GDRIVE`
+*   **Input da IA:** `link_pasta_gdrive`.
+*   **Ação n8n:**
+    1. Usar API Google Drive para listar arquivos da pasta.
+    2. Formatar lista (Nome + Tipo).
+    3. Injetar em `[ARQUIVOS_ENCONTRADOS]` e rodar prompt novamente (Loop).
+
+#### `INICIAR_PROCESSAMENTO_ARQUIVOS`
+*   **Input da IA:** `arquivos_confirmados`.
+*   **Ação n8n:**
+    1. Disparar Workflow assíncrono (Download -> OCR -> Chunking -> Embedding -> Insert pgvector).
+    2. Responder ao usuário: "Processamento iniciado em segundo plano".
+
+#### `RESPONDER_DUVIDA_KB`
+*   **Input da IA:** `artigo_kb_utilizado`.
+*   **Ação n8n:**
+    1. Apenas responder ao usuário.
+    2. (Opcional) Salvar em uma tabela `log_qa` para auditar quais perguntas estão sendo feitas.
+### @END_MODULE
