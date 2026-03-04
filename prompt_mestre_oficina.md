@@ -506,7 +506,7 @@ Antes de chamar o nó da LLM, o n8n deve buscar estes dados no PostgreSQL e subs
 | Placeholder | Tipo de Dado | Origem / Descrição |
 | :--- | :--- | :--- |
 | `[DATA_HORA_DO_SISTEMA]` | String (ISO) | `{{ $now }}`. Essencial para a IA saber se é "bom dia" ou "boa tarde" e calcular prazos. |
-| [CONFIG_ASSISTENTE] | JSON String | Objeto completo das configurações do assistente (incluindo, `nome`, `pronome`). Vem de [LOJA].config_json.assistente |
+| `[CONFIG_ASSISTENTE]` | JSON String | Objeto de configuração do agente. Obrigatório conter chave `nome`. Vem de `[LOJA].config_json.assistente`. |
 | `[HISTORICO_DA_CONVERSA]` | String (Texto) | As últimas 25-50 mensagens formatadas como "Agente: ... \n Usuário: ...". |
 | `[USUARIO]` | JSON String | Objeto completo da tabela `pessoas` (incluindo `id`, `nome`, `tipo` e `contexto_memoria`). |
 | `[LOJA]` | JSON String | Objeto da tabela `oficinas` (incluindo `nome`, `config_json` e regras de negócio). |
