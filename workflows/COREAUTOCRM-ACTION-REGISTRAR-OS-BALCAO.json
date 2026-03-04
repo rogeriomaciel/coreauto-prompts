@@ -1,0 +1,366 @@
+{
+  "name": "COREAUTOCRM-ACTION-REGISTRAR-OS-BALCAO",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -800,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const actionData = $json.respostaIA.actionData;\n\n// Validação Básica\nif (!actionData) throw new Error ('Objeto actionData Inválido');\nif (!actionData.nome_cliente) throw new Error ('Nome do cliente obrigatório');\nif (!actionData.telefone_cliente) throw new Error ('Telefone do cliente obrigatório');\nif (!actionData.placa_veiculo) throw new Error ('Placa obrigatória');\n\n// --- SANITIZAÇÃO ---\n\n// 1. Telefone: Remove tudo que não é número\n// Se não tiver 55 no começo e tiver tamanho de celular BR (11 digitos), adiciona 55\nlet phone = actionData.telefone_cliente.replace(/[^0-9]/g, '');\nif (phone.length === 11) phone = '55' + phone;\nactionData.telefone_cliente = phone;\n\n// 2. Placa: Maiúsculo e sem traços\nactionData.placa_veiculo = actionData.placa_veiculo.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();\n\n// 3. Textos Gerais\nactionData.nome_cliente = actionData.nome_cliente.trim();\nactionData.modelo_veiculo = (actionData.modelo_veiculo || '').toUpperCase().trim();\nactionData.marca_veiculo = (actionData.marca_veiculo || '').toUpperCase().trim();\n\n// Atualiza o JSON\n$input.item.json.respostaIA.actionData = actionData;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -580,
+        240
+      ],
+      "id": "validate-inputs",
+      "name": "Validate & Sanitize"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nome": "={{ $json.respostaIA.actionData.nome_cliente }}",
+            "whatsapp": "={{ $json.respostaIA.actionData.telefone_cliente }}",
+            "loja_id": "={{ $json.loja.id }}",
+            "tipo": "cliente"
+          },
+          "matchingColumns": [
+            "whatsapp"
+          ],
+          "options": {}
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -360,
+        240
+      ],
+      "id": "upsert-pessoa",
+      "name": "Upsert Pessoa",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "veiculos",
+          "mode": "list",
+          "cachedResultName": "veiculos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cliente_id": "={{ $json.id }}",
+            "placa": "={{ $('Validate & Sanitize').item.json.respostaIA.actionData.placa_veiculo }}",
+            "marca": "={{ $('Validate & Sanitize').item.json.respostaIA.actionData.marca_veiculo }}",
+            "modelo": "={{ $('Validate & Sanitize').item.json.respostaIA.actionData.modelo_veiculo }}"
+          },
+          "matchingColumns": [
+            "placa"
+          ],
+          "options": {}
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -140,
+        240
+      ],
+      "id": "upsert-veiculo",
+      "name": "Upsert Veiculo",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ordens_servico",
+          "mode": "list",
+          "cachedResultName": "ordens_servico"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "veiculo_id": "={{ $json.id }}",
+            "cliente_id": "={{ $('Upsert Pessoa').item.json.id }}",
+            "status": "pre_os",
+            "descricao_problema": "={{ $('Validate & Sanitize').item.json.respostaIA.actionData.descricao_problema }}"
+          },
+          "options": {}
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        80,
+        240
+      ],
+      "id": "criar-os",
+      "name": "Criar OS",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.message ? $json.message.toUpperCase() : '' }}",
+              "rightValue": "UNIQUE_PRE_OS_POR_VEICULO",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        300,
+        320
+      ],
+      "id": "check-duplicidade",
+      "name": "Erro Duplicidade?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update ordens_servico \nset status = 'Finalizado'\nwhere veiculo_id = $1 and status = 'pre_os';",
+        "options": {
+          "queryReplacement": "={{ $('Upsert Veiculo').item.json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        520,
+        400
+      ],
+      "id": "fix-duplicidade",
+      "name": "Finalizar OS Antiga",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $json.id }}",
+            "pessoa_id": "={{ $('Start').item.json.pessoa.id }}",
+            "tipo_evento": "comunicacao",
+            "descricao": "OS de Balcão aberta manualmente pelo atendente {{ $('Start').item.json.pessoa.nome }}",
+            "origem": "sistema",
+            "contexto_json": "={{ $('Validate & Sanitize').item.json.respostaIA }}"
+          },
+          "options": {}
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        300,
+        100
+      ],
+      "id": "registrar-evento",
+      "name": "Registrar Evento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Retorna o contexto original para a CORA continuar\nconst originalItem = $('Start').item.json;\n\n// Tenta injetar o ID da nova OS\ntry {\n    const osNode = $('Criar OS').last();\n    if (osNode && osNode.json && osNode.json.id) {\n        originalItem.os_criada_id = osNode.json.id;\n    }\n} catch (e) {}\n\n$input.item.json = originalItem;\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        240
+      ],
+      "id": "return-context",
+      "name": "Retornar Contexto"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Validate & Sanitize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Sanitize": {
+      "main": [
+        [
+          {
+            "node": "Upsert Pessoa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Pessoa": {
+      "main": [
+        [
+          {
+            "node": "Upsert Veiculo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Veiculo": {
+      "main": [
+        [
+          {
+            "node": "Criar OS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar OS": {
+      "main": [
+        [
+          {
+            "node": "Registrar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Erro Duplicidade?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Duplicidade?": {
+      "main": [
+        [
+          {
+            "node": "Finalizar OS Antiga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalizar OS Antiga": {
+      "main": [
+        [
+          {
+            "node": "Criar OS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Evento": {
+      "main": [
+        [
+          {
+            "node": "Retornar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

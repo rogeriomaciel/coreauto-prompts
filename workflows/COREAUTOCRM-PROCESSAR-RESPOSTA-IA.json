@@ -391,6 +391,30 @@
                 "combinator": "and"
               },
               "renameOutput": true,
+              "outputKey": "REGISTRAR_OS_BALCAO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+                    "leftValue": "={{ $json.respostaIA.controlAction }}",
+                    "rightValue": "GRAVAR_AUDIO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
               "outputKey": "GRAVAR_AUDIO"
             },
             {
@@ -898,6 +922,25 @@
       "id": "call-responder-duvida",
       "name": "Action: Responder Duvida"
     }
+    ,
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "COREAUTOCRM-ACTION-REGISTRAR-OS-BALCAO",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2528,
+        2416
+      ],
+      "id": "call-registrar-os-balcao",
+      "name": "Action: Registrar OS Balcao"
+    }
   ],
   "pinData": {
     "Start": [
@@ -1142,11 +1185,29 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Action: Registrar OS Balcao",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [],
         []
       ]
     },
     "Action: Registrar Pre-OS": {
+      "main": [
+        [
+          {
+            "node": "Salvar Memoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: Registrar OS Balcao": {
       "main": [
         [
           {
