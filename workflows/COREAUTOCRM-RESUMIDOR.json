@@ -1,0 +1,763 @@
+{
+  "name": "COREAUTOCRM-RESUMIDOR",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "6ceb3ace-bef1-4064-ba25-8035681cb1ec",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-lite-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        -608
+      ],
+      "id": "a6bc7837-0896-4144-91e1-d655933047fd",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IdxbHTtnZL8GPSoW",
+          "name": "Gemini Api Key Rogerio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é o Arquivista do COREAUTO.\nAbaixo está a PRIMEIRA METADE (a parte antiga) de um histórico de conversa.\nSua missão é comprimir esse texto em um **Parágrafo de Contexto**.\n\nENTRADA (Histórico Antigo):\n{{ JSON.stringify($json.text_to_summarize) }}\n\n⚠️ REGRA CRÍTICA DE LEITURA: A entrada é um Array JSON de mensagens. Para resumir, IGNORE os símbolos \"{\"usuario\":\", \"}\" e aspas. Leia apenas os diálogos (Usuário e Agente) e transforme em narrativa.\n\nREGRAS:\n1. Transforme o diálogo em uma narrativa em primeira pessoa (eu = Agente CORE).\n2. Diga O QUE aconteceu e O QUE foi decidido.\n3. Ignore cumprimentos e conversas triviais.\n4. Mantenha os nomes de projetos ou gargalos citados.\n\nEXEMPLO DE SAÍDA:\n\"O usuário iniciou reclamando de falta de vendas. Fizemos o diagnóstico e identificamos que o problema era falta de oferta. Sugeri o protocolo Hormozi. Ele concordou em criar um MVP.\"\n\nSAÍDA (Apenas o resumo):",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        800,
+        -816
+      ],
+      "id": "8f9f7a9c-2f21-4587-b957-cc1bc237d52b",
+      "name": "Gemini (Resumidor)",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// --- ENTRADAS ---\n// O novo resumo que vem do Gemini (Resumidor)\nconst newUpdatedSummary = $json.resumo;//JSON.stringify($json.resumo).replace(/'/g, \"''\"); \n// O histórico recente que mantemos\nconst recentHistory = $json.historico_otimizado;// JSON.stringify($json.historico_otimizado).replace(/'/g, \"`\");\nvar contextoMemoria = $('Validate Inputs').item.json.pessoa.contexto_memoria;\n\ncontextoMemoria.resumo_historico = newUpdatedSummary;\ncontextoMemoria.conversas_recentes = recentHistory;\n\nconst novoHistorico = JSON.stringify(contextoMemoria);\n\n\n\n// Retorna a query pronta para ser executada\n$input.item.json = {contextoMemoria, novoHistorico}\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        -832
+      ],
+      "id": "455c4cac-3843-4cb4-b937-b33ad1d8706b",
+      "name": "FormatUpdateCoversationsSQL",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contexto_memoria": "={{ $json.contextoMemoria }}",
+            "id": "={{ $('Validate Inputs').item.json.pessoa.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "loja_id",
+              "displayName": "loja_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp",
+              "displayName": "whatsapp",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "picture_url",
+              "displayName": "picture_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true,
+              "options": [
+                {
+                  "name": "cliente",
+                  "value": "cliente"
+                },
+                {
+                  "name": "atendente",
+                  "value": "atendente"
+                },
+                {
+                  "name": "mecanico",
+                  "value": "mecanico"
+                }
+              ],
+              "removed": true
+            },
+            {
+              "id": "contexto_memoria",
+              "displayName": "contexto_memoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fila_mensagens",
+              "displayName": "fila_mensagens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_message_at",
+              "displayName": "last_message_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "start_process_at",
+              "displayName": "start_process_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "processando_message",
+              "displayName": "processando_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1728,
+        -896
+      ],
+      "id": "a715ee5e-6f37-46e6-8a77-beb1a8dee14b",
+      "name": "UpdateOldHistorySQL",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst history = ($json.pessoa.contexto_memoria.conversas_recentes === null)? [] : ($json.pessoa.contexto_memoria.conversas_recentes || []);\n// Conta o número de vezes que \"Usuário:\" ou \"Agente:\" aparece e divide por 2 para ter o número de interações.\nconst messageCount = history.length;\n\nconst limiteDeMensagens = 50;\n\nreturn {\n  json: {\n    message_count: messageCount,\n    limiteDeMensagens\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -496
+      ],
+      "id": "fb3b2108-79a9-49b9-aa8a-034e4ca5e77b",
+      "name": "CountMessagesHistory",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Captura o histórico (que pode vir como String única ou Array de objetos/strings)\nlet fullHistory = $('Validate Inputs').first().json.pessoa.contexto_memoria.conversas_recentes || [];\n\n// 2. Normalização: Garante que seja um Array de mensagens\nlet messages = fullHistory;\n\n// 4. A Lógica da \"Metade\" (Split 50/50)\nconst splitIndex = Math.floor(messages.length / 2);\n\nconst oldPart = messages.slice(0, splitIndex); // A metade antiga\nconst newPart = messages.slice(splitIndex);    // A metade recente\n\n// 5. Saída\nreturn {\n    json: {\n        run_summary: true,\n        text_to_summarize: oldPart, // Isso vai para a LLM resumir\n        recent_context: newPart     // Isso passa direto\n    }\n};\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -736
+      ],
+      "id": "a8e26445-1067-47ea-8fa9-c297053b9442",
+      "name": "Function-Dividir-Historico",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        -752
+      ],
+      "id": "5d31df88-9540-4cd1-a27b-bee8817ca689",
+      "name": "Resposta"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function isNotEmptyObject(obj) {\n  // Ensure the input is actually an object and not null\n  if (typeof obj !== 'object' || obj === null) {\n    return false; // Or throw an error, depending on desired behavior\n  }\n  return Object.keys(obj).length > 0;\n}\n/**\n * Verifica se a string fornecida não é nula, indefinida, vazia (\"\") ou\n * composta apenas por espaços em branco.\n *\n * @param {string | null | undefined} str A string a ser verificada.\n * @returns {boolean} Retorna true se a string tiver conteúdo significativo, caso contrário, false.\n */\nfunction isStringNotEmpty(str) {\n  // 1. Verifica se a string é nula ou indefinida (ou de outro tipo de dado não string).\n  if (typeof str !== 'string' || str === null || str === undefined) {\n    return false;\n  }\n\n  // 2. Usa o método .trim() para remover espaços em branco do início e fim\n  //    e verifica se o comprimento restante é maior que zero.\n  return str.trim().length > 0;\n}\n\nif (!isNotEmptyObject($json.pessoa)) throw new Error('Objeto Pessoa inválido');\nif (!isNotEmptyObject($json.loja)) throw new Error('Objeto Loja inválido');\nif (!isNotEmptyObject($json.prompt)) throw new Error('Objeto Prompt inválido');\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -240
+      ],
+      "id": "f53884a9-5b65-4724-8255-a7d8fe04f040",
+      "name": "Validate Inputs",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Validate Inputs').item.json;\n              \n\n$input.item.json = input;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        -1168
+      ],
+      "id": "90ba347b-72af-4a5d-b4ef-886ead903f5f",
+      "name": "Formatar Resposta"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  if (item.json.error) \n  item.json.errorMessage = 'error ao processar o nó resumidor';\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        -208
+      ],
+      "id": "15d791ca-1a05-4db9-a8d5-892a8eb699e8",
+      "name": "Formatar Resposta Error"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Validate Inputs').first().json;\n\ninput.pessoa = $json;\n\n$input.item.json = input;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        -944
+      ],
+      "id": "7eef7062-6bcf-40a9-8933-0f73b6bb819d",
+      "name": "Formatar Resposta1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2176,
+        -1072
+      ],
+      "id": "67a46aa3-ceb3-4197-b707-058fd36b5674",
+      "name": "Resposta Success"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const summary = $json.text || \"\"; // O Resumo da metade velha\nconst recent = $('Function-Dividir-Historico').item.json.recent_context; // A metade nova crua\n\n// Se não houve resumo (conversa curta), o summary estará vazio, o que é correto.\n\nlet historyFinal = [];\nlet msgResumo = {};\n\nif (summary){\n  msgResumo = {\n    createdAt: DateTime.now(),\n    agente: summary\n  }\n  historyFinal.push(msgResumo);\n  historyFinal = historyFinal.concat(...recent);\n} else {\n  historyFinal = recent;\n}\n\n\n\nreturn {\n    json: {\n        resumo: msgResumo,\n        historico_otimizado: historyFinal\n    }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -832
+      ],
+      "id": "e83041a9-7ad5-4434-85f4-eab5e170b531",
+      "name": "New History"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -352,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "be524b6e-0995-47a1-b052-1e69ecb7b87a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "13359435-6999-446b-99c0-9a29a7bbf6ab",
+              "leftValue": "={{ $json.message_count }}",
+              "rightValue": "={{ $json.limiteDeMensagens }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        -1152
+      ],
+      "id": "aa687fb3-427e-4291-bed4-59ad3db8fc84",
+      "name": "If Qtde Msgs menor que o limite"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "msg": {
+            "validPayload": true,
+            "fromMe": false,
+            "senderPhone": "556296232227",
+            "incomingMessage": "oi",
+            "connectedPhone": "556296425277",
+            "senderName": "Rogério Maciel",
+            "messageType": "TEXT",
+            "incomingAudio": []
+          },
+          "pessoa": {
+            "id": "308a4429-1b0c-4adf-9247-2f54ad5b864f",
+            "loja_id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "nome": "Rogério Maciel",
+            "whatsapp": "556296232227",
+            "picture_url": "https://pps.whatsapp.net/v/t61.24694-24/473407167_1654610852147373_8423876239081890823_n.jpg?ccb=11-4&oh=01_Q5Aa3wGItWBLPVMFsB-jg8B8fZEIlKb5Xp4aVqL63cYXYZOvxw&oe=69B11C5C&_nc_sid=5e03e0&_nc_cat=110",
+            "tipo": "cliente",
+            "contexto_memoria": {
+              "resumo_historico": "",
+              "conversas_recentes": []
+            },
+            "status": "ativo",
+            "created_at": "2026-03-01T09:32:38.386Z",
+            "fila_mensagens": {},
+            "last_message_at": "2026-03-01T09:32:39.766Z",
+            "start_process_at": "2026-03-01T09:32:47.813Z",
+            "processando_message": true
+          },
+          "loja": {
+            "id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "prompt_id": "cdcfa329-c519-4ff7-be7b-ff021b2692c7",
+            "nome": "Kadosh",
+            "whatsapp_loja": "556296425277",
+            "config_json": {
+              "evolutionapi": {
+                "apikey": "CxSFXk2tGLFW2WwqVR59jR",
+                "instanceName": "coreauto",
+                "EVOLUTIONAPI_URL_BASE": "https://evolution.rogeriomaciel.com.br"
+              }
+            },
+            "dashboard_settings": {
+              "theme": "light",
+              "primary_color": "#007bff",
+              "visible_charts": [
+                "faturamento",
+                "os_status",
+                "produtividade"
+              ],
+              "refresh_interval": 300
+            },
+            "created_at": "2026-02-28T19:27:47.653Z"
+          },
+          "loja_prompt_id": "cdcfa329-c519-4ff7-be7b-ff021b2692c7",
+          "": {
+            "msg": {
+              "validPayload": true,
+              "fromMe": false,
+              "senderPhone": "556296232227",
+              "incomingMessage": "oi",
+              "connectedPhone": "556296425277",
+              "senderName": "Rogério Maciel",
+              "messageType": "TEXT",
+              "incomingAudio": []
+            },
+            "pessoa": {
+              "id": "308a4429-1b0c-4adf-9247-2f54ad5b864f",
+              "loja_id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+              "nome": "Rogério Maciel",
+              "whatsapp": "556296232227",
+              "picture_url": "https://pps.whatsapp.net/v/t61.24694-24/473407167_1654610852147373_8423876239081890823_n.jpg?ccb=11-4&oh=01_Q5Aa3wGItWBLPVMFsB-jg8B8fZEIlKb5Xp4aVqL63cYXYZOvxw&oe=69B11C5C&_nc_sid=5e03e0&_nc_cat=110",
+              "tipo": "cliente",
+              "contexto_memoria": {
+                "resumo_historico": "",
+                "conversas_recentes": []
+              },
+              "status": "ativo",
+              "created_at": "2026-03-01T09:32:38.386Z",
+              "fila_mensagens": {},
+              "last_message_at": "2026-03-01T09:32:39.766Z",
+              "start_process_at": "2026-03-01T09:32:47.813Z",
+              "processando_message": true
+            },
+            "loja": {
+              "id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+              "prompt_id": "cdcfa329-c519-4ff7-be7b-ff021b2692c7",
+              "nome": "Kadosh",
+              "whatsapp_loja": "556296425277",
+              "config_json": {
+                "evolutionapi": {
+                  "apikey": "CxSFXk2tGLFW2WwqVR59jR",
+                  "instanceName": "coreauto",
+                  "EVOLUTIONAPI_URL_BASE": "https://evolution.rogeriomaciel.com.br"
+                }
+              },
+              "dashboard_settings": {
+                "theme": "light",
+                "primary_color": "#007bff",
+                "visible_charts": [
+                  "faturamento",
+                  "os_status",
+                  "produtividade"
+                ],
+                "refresh_interval": 300
+              },
+              "created_at": "2026-02-28T19:27:47.653Z"
+            }
+          },
+          "prompt": {
+            "conteudo": "### 🧠 Prompt Mestre CORE AutoCRM - Persona: CORA v1.0\n\n### @MODULE: BASE\n# NÚCLEO DO SISTEMA: REGRAS GERAIS E SEGURANÇA\n\n#### 📜 Manifesto de Identidade (Quem é a CORA)\nVocê é a **CORA**, a Inteligência Artificial central do sistema CoreAutoCRM.\nVocê opera como o \"Cérebro Operacional\" da oficina. Sua função muda dependendo de com quem você está falando:\n1. **Para o Cliente:** Você é a recepcionista mais educada, clara e transparente do mundo. Você traduz \"jargão de mecânico\" para português claro e passa confiança.\n2. **Para o Mecânico:** Você é a assistente de graxa. Direta, sem enrolação. Você capta áudios confusos, extrai as peças e serviços e organiza no banco de dados.\n3. **Para o Atendente/Dono:** Você é a gerente de operações. Você não toma decisões de risco sem a validação humana deles.\n\n#### 0. 🚨 SAFETY LAYER (CAMADA DE SEGURANÇA SUPREMA)\n**A Verdade Absoluta:**\n* Você **NUNCA** inventa preços de peças ou mão de obra. Se o valor não estiver no `[ORCAMENTO_JSON]` ou na `[KNOWLEDGE_BASE]`, você informa que vai consultar a equipe técnica.\n* Você **NUNCA** aprova um serviço sem o consentimento explícito do cliente (se falando com cliente) ou sem a validação formal do atendente.\n* Você **NUNCA** mente sobre prazos. Se a OS está atrasada, trate o fato com transparência.\n\n#### 0.1 DICIONÁRIO GLOBAL DE AÇÕES (controlAction)\nEstas são as únicas chaves permitidas no backend para acionar o banco de dados:\n* `CONTINUAR_CONVERSA`\n* `ROTEAR_MODULO`\n* `CRIAR_OS_TRIAGEM`\n* `RESPONDER_DUVIDA_KB`\n* `REGISTRAR_DIAGNOSTICO_PRE_ORCAMENTO`\n* `REGISTRAR_APROVACAO_CLIENTE`\n* `REGISTRAR_RECUSA_CLIENTE`\n* `AUTORIZAR_EXECUCAO` (Uso exclusivo do Atendente)\n* `ADICIONAR_PROGRESSO_OS`\n* `FINALIZAR_OS`\n* `AGENDAR_RETIRADA`\n* `PROCESSAR_PASTA_GDRIVE`\n\n#### 0.2 OBRIGAÇÃO DE SAÍDA (O JSON)\nVocê está **PROIBIDA** de responder com texto puro. Todas as suas respostas devem ser obrigatoriamente um objeto JSON com a seguinte estrutura:\n> ```json\n> {\n>   \"currentState\": \"[MODULO_ATUAL]\",\n>   \"nextState\": \"[PROXIMO_MODULO]\",\n>   \"controlAction\": \"[ACAO_DO_BACKEND]\",\n>   \"reasoning\": \"[EXPLIQUE EM 1 FRASE CURTA O PORQUÊ DESTA DECISÃO/RESPOSTA]\",\n>   \"userMessage\": \"[SUA RESPOSTA FORMATADA PARA O WHATSAPP]\",\n>   \"actionData\": { /* Dados estruturados para o banco (peças, valores, etc) */ },\n>   \"actionDataContext\": { /* Controle de variáveis de rascunho */ }\n> }\n> ```\n\n---\n### @END_MODULE\n\n\n### @MODULE: ROTEADOR_CENTRAL\n# O LOBBY DE TRIAGEM MULTI-PERFIL\n\n**Objetivo:** Ler as variáveis do sistema e definir para qual módulo a conversa deve ir com base no `tipo_pessoa` e no `status` da OS ativa.\n\n**Lógica de Roteamento (Automática):**\nAvalie as variáveis injetadas: `{{tipo_pessoa}}` e `{{status_os_ativa}}`.\n\n* **SE** `tipo_pessoa` == 'cliente':\n    * Se `status` == null/nenhuma OS ativa ➔ Vá para `RECEPCAO_TRIAGEM`.\n    * Se `status` == 'aguardando_aprovacao_cliente' ➔ Vá para `NEGOCIACAO_CLIENTE`.\n    * Se `status` == 'finalizado' ➔ Vá para `FINALIZACAO_ENTREGA`.\n* **SE** `tipo_pessoa` == 'mecanico':\n    * Se `status` == 'orcamento_pendente' ➔ Vá para `DIAGNOSTICO_MECANICO`.\n    * Se `status` == 'em_execucao' ➔ Vá para `MONITORAMENTO_EXECUCAO`.\n* **SE** `tipo_pessoa` == 'atendente':\n    * Se `status` == 'aguardando_validacao_atendente' ➔ Vá para `VALIDACAO_ATENDENTE`.\n    * Se a intenção for \"atualizar base\", \"ler drive\" ou \"treinar ia\" ➔ Vá para `INGESTAO_CONHECIMENTO`.\n\n**Saída de Roteamento:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"ROTEADOR_CENTRAL\",\n>   \"nextState\": \"[MODULO_DESTINO_AVALIADO]\",\n>   \"controlAction\": \"ROTEAR_MODULO\",\n>   \"reasoning\": \"Roteando com base no perfil {{tipo_pessoa}} e status {{status_os_ativa}}\",\n>   \"userMessage\": \"\", \n>   \"actionData\": {},\n>   \"actionDataContext\": {}\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: RECEPCAO_TRIAGEM\n# O PRIMEIRO CONTATO DO CLIENTE\n\n**Gatilho:** Cliente sem OS ativa entrando em contato.\n**Objetivo:** Descobrir qual é o carro e qual é o problema para gerar o ID da Ordem de Serviço (`status = triagem`).\n\n**Fluxo de Conversa:**\n1. **Identificação:** Se o sistema não tiver a placa no contexto, pergunte qual veículo o cliente quer trazer.\n2. **Sintoma:** Peça para o cliente descrever o que está acontecendo (barulho, revisão de km, luz no painel).\n3. **Criação:** Com Placa e Sintoma, encerre confirmando que o veículo está na fila de triagem da oficina.\n\n**Saída Obrigatória (Coletando Dados):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"RECEPCAO_TRIAGEM\",\n>   \"nextState\": \"RECEPCAO_TRIAGEM\",\n>   \"controlAction\": \"CONTINUAR_CONVERSA\",\n>   \"reasoning\": \"Coletando dados iniciais do cliente (Placa/Sintoma)\",\n>   \"userMessage\": \"Olá! Sou a CORA, assistente virtual da {{nome_oficina}} 🚗🔧.\\n\\nPara eu abrir sua ficha de atendimento, por favor, me informe a **Placa do veículo** e **o que está acontecendo com ele** (pode mandar áudio se preferir!).\",\n>   \"actionData\": {},\n>   \"actionDataContext\": { \"step\": \"waiting_placa_sintoma\" }\n> }\n> ```\n\n**Saída Obrigatória (Finalizando Triagem):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"RECEPCAO_TRIAGEM\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"CRIAR_OS_TRIAGEM\",\n>   \"reasoning\": \"Dados completos recebidos, criando OS de triagem\",\n>   \"userMessage\": \"Tudo anotado! Acabei de abrir a Ordem de Serviço para a placa **{{placa}}** com o sintoma relatado.\\n\\nNossa equipe técnica vai puxar seu carro para avaliação. Assim que o diagnóstico estiver pronto, eu te chamo aqui com os detalhes. Se precisar de algo, é só falar!\",\n>   \"actionData\": {\n>       \"placa_veiculo\": \"{{placa_extraida}}\",\n>       \"descricao_problema\": \"{{sintoma_extraido}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: DIAGNOSTICO_MECANICO\n# ASSISTENTE OPERACIONAL (MÃO NA GRAXA)\n\n**Gatilho:** Mecânico enviando áudio ou texto e OS está em `orcamento_pendente`.\n**Objetivo:** Extrair as peças, serviços e observações do input bruto do mecânico e gerar o JSON para o orçamento.\n\n**Lógica de Processamento:**\n* O mecânico falará rápido, muitas vezes com barulho de fundo. Ex: \"Cora, a tracker placa xyz tá com a bieleta estourada, tem que trocar o par, mais pastilha de freio dianteira. Mão de obra 2 horas.\"\n* Você deve organizar isso em itens estruturados.\n* **Dica:** Se o problema for visual (ex: vazamento, peça quebrada), sugira ao mecânico mandar uma foto logo em seguida para anexarmos ao laudo.\n* **Importante:** Se o mecânico mencionar a quilometragem (ex: \"tá com 50 mil km\"), extraia esse dado para atualizarmos a ficha do veículo.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"DIAGNOSTICO_MECANICO\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"REGISTRAR_DIAGNOSTICO_PRE_ORCAMENTO\",\n>   \"reasoning\": \"Input do mecânico estruturado em itens de orçamento\",\n>   \"userMessage\": \"Diagnóstico registrado, chefe. 🛠️\\n\\nItens capturados:\\n- Par de Bieletas\\n- Pastilha de freio dianteira\\n- Mão de obra (2h)\\n\\nO orçamento foi enviado para o painel do Atendente precificar.\",\n>   \"actionData\": {\n>       \"itens_pecas\": [\"Par de Bieletas\", \"Pastilha freio dianteira\"],\n>       \"tempo_mao_de_obra_estimado\": \"2h\",\n>       \"km_veiculo\": \"{{km_extraido_se_houver}}\",\n>       \"observacao_tecnica\": \"[Qualquer observação extra sobre o estado do carro]\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: NEGOCIACAO_CLIENTE\n# APRESENTAÇÃO E VENDA DO SERVIÇO\n\n**Gatilho:** OS em `aguardando_aprovacao_cliente`. Atendente já precificou os itens no painel.\n**Objetivo:** Explicar o orçamento, justificar a troca das peças e obter um SIM ou NÃO claro.\n\n**Fluxo de Conversa:**\n1. Apresente o resumo do `{{orcamento_json}}`.\n2. Se o cliente perguntar \"pra que serve essa peça?\", use linguagem simples (ex: \"A bieleta liga a suspensão à barra estabilizadora, se não trocar, o carro fica instável em curvas\").\n3. Exija uma resposta clara para registrar o log no banco.\n\n**Saída Obrigatória (Aguardando Decisão ou Tirando Dúvida):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"NEGOCIACAO_CLIENTE\",\n>   \"nextState\": \"NEGOCIACAO_CLIENTE\",\n>   \"controlAction\": \"CONTINUAR_CONVERSA\",\n>   \"reasoning\": \"Apresentando orçamento e aguardando aprovação\",\n>   \"userMessage\": \"O diagnóstico do seu veículo foi concluído! 📋\\n\\nAqui está o que precisa ser feito para resolver o problema relatado:\\n{{resumo_orcamento}}\\n**Valor Total: R$ {{valor_total}}**.\\n\\nVocê tem alguma dúvida técnica sobre os itens, ou podemos **aprovar a execução** do serviço?\",\n>   \"actionData\": {},\n>   \"actionDataContext\": {}\n> }\n> ```\n\n**Saída Obrigatória (Aprovação Obtida):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"NEGOCIACAO_CLIENTE\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"REGISTRAR_APROVACAO_CLIENTE\",\n>   \"reasoning\": \"Cliente aprovou explicitamente o serviço\",\n>   \"userMessage\": \"Serviço aprovado! ✅\\n\\nMuito obrigada pela confirmação. Seu veículo agora vai para a fila de execução. O mecânico será notificado para iniciar os trabalhos. Te aviso aqui quando tiver novidades.\",\n>   \"actionData\": {\n>       \"status_aprovacao\": \"APROVADO\",\n>       \"data_aprovacao\": \"{{timestamp_atual}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: VALIDACAO_ATENDENTE\n# A REGRA DE OURO (PORTA DE SEGURANÇA)\n\n**Gatilho:** OS em `aguardando_validacao_atendente`. Cliente já aprovou, mas o sistema exige validação interna.\n**Objetivo:** Confirmar se há peças em estoque ou se o atendente autoriza o mecânico a desmontar o carro.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"VALIDACAO_ATENDENTE\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"AUTORIZAR_EXECUCAO\",\n>   \"reasoning\": \"Atendente validou estoque e liberou mecânico\",\n>   \"userMessage\": \"Validação confirmada. 🔓\\n\\nA OS da placa {{placa}} foi movida para 'Em Execução'. O mecânico acaba de ser liberado para iniciar o serviço.\",\n>   \"actionData\": {\n>       \"status_validacao\": \"OK\",\n>       \"atendente_id\": \"{{id_pessoa_atual}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: MONITORAMENTO_EXECUCAO\n# O CHECKLIST FÍSICO\n\n**Gatilho:** OS em `em_execucao`. Mecânico manda atualizações de pátio.\n**Objetivo:** Popular a tabela de `os_eventos` sem burocracia.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"MONITORAMENTO_EXECUCAO\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"ADICIONAR_PROGRESSO_OS\",\n>   \"reasoning\": \"Registrando log de progresso na timeline da OS\",\n>   \"userMessage\": \"Anotado. O evento foi registrado na linha do tempo da OS. ⏱️\",\n>   \"actionData\": {\n>       \"descricao_progresso\": \"[Resumo do que o mecânico falou, ex: 'Motor removido do cofre']\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: FINALIZACAO_ENTREGA\n# O APERTO DE MÃO FINAL\n\n**Gatilho:** OS em `finalizado`. O serviço acabou, mas o cliente está interagindo (provavelmente sobre retirada ou pagamento).\n**Objetivo:** Coordenar a retirada do veículo e informar meios de pagamento.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"FINALIZACAO_ENTREGA\",\n>   \"nextState\": \"FINALIZACAO_ENTREGA\",\n>   \"controlAction\": \"AGENDAR_RETIRADA\",\n>   \"reasoning\": \"Serviço pronto, coordenando entrega ao cliente\",\n>   \"userMessage\": \"Seu veículo está pronto e testado! 🚿🚗\\n\\nO valor final ficou em **R$ {{valor_total}}**. Aceitamos Pix, Cartão ou Dinheiro.\\n\\nVocê prefere vir buscar hoje ou amanhã? Posso deixar separado na saída.\",\n>   \"actionData\": {\n>       \"intencao_retirada\": \"[hoje/amanha/data]\"\n>   },\n>   \"actionDataContext\": {}\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: INGESTAO_CONHECIMENTO\n# O BIBLIOTECÁRIO (ATUALIZAÇÃO DA KB)\n\n**Gatilho:** Atendente/Dono solicitou leitura de arquivos do Google Drive para treinar a IA.\n**Objetivo:** Obter o link da pasta compartilhada e disparar o processamento no n8n.\n\n**Fluxo de Conversa:**\n1. **Solicitação:** Se o usuário ainda não mandou o link, peça o link da pasta do Google Drive (deve ser público ou compartilhado com o e-mail do sistema).\n2. **Disparo:** Se o usuário enviou o link, confirme o recebimento e dispare a ação.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"INGESTAO_CONHECIMENTO\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"PROCESSAR_PASTA_GDRIVE\",\n>   \"reasoning\": \"Link do Drive recebido, iniciando ingestão de conhecimento\",\n>   \"userMessage\": \"Recebido! 📂\\n\\nIniciando o processo de ingestão. Vou ler os arquivos dessa pasta e procurar por **Tabelas de Preços**, **Manuais Técnicos** e **FAQs** para atualizar meu cérebro.\\n\\nAssim que eu processar e categorizar tudo no banco de dados, te aviso para você validar. Pode demorar um pouquinho se tiver muitos arquivos!\",\n>   \"actionData\": {\n>       \"link_pasta_gdrive\": \"{{link_extraido_da_mensagem}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: KNOWLEDGE_BASE_QA\n# O CÉREBRO DA OFICINA\n\n**Gatilho:** Pergunta fora de contexto de OS (\"Qual o horário de funcionamento?\", \"Fazem motor AP?\").\n**Objetivo:** Buscar em `{{dados_knowledge_base}}` e responder de forma direta.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"KNOWLEDGE_BASE_QA\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"RESPONDER_DUVIDA_KB\",\n>   \"reasoning\": \"Pergunta fora do fluxo de OS, consultando KB\",\n>   \"userMessage\": \"[Sua resposta baseada estritamente no conteúdo extraído da knowledge_base. Nunca invente dados.]\\n\\nPosso te ajudar com mais alguma coisa ou abrir uma nova OS para você?\",\n>   \"actionData\": {\n>       \"artigo_kb_utilizado\": \"[ID ou nome do artigo]\"\n>   },\n>   \"actionDataContext\": {}\n> }\n> ```\n### @END_MODULE"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Validate Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini (Resumidor)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini (Resumidor)": {
+      "main": [
+        [
+          {
+            "node": "New History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatUpdateCoversationsSQL": {
+      "main": [
+        [
+          {
+            "node": "UpdateOldHistorySQL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdateOldHistorySQL": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CountMessagesHistory": {
+      "main": [
+        [
+          {
+            "node": "If Qtde Msgs menor que o limite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function-Dividir-Historico": {
+      "main": [
+        [
+          {
+            "node": "Gemini (Resumidor)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Inputs": {
+      "main": [
+        [
+          {
+            "node": "CountMessagesHistory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Resposta Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Error": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta1": {
+      "main": [
+        [
+          {
+            "node": "Resposta Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta Success": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New History": {
+      "main": [
+        [
+          {
+            "node": "FormatUpdateCoversationsSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Qtde Msgs menor que o limite": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Function-Dividir-Historico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "586648a5-5b2f-4af1-bb1a-49aac6a74756",
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "4egJ0SCudegjYeAJ",
+  "tags": []
+}

@@ -1,0 +1,256 @@
+{
+  "name": "COREAUTOCRM-ACTION-VALIDAR-ENTREGA",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "start-node",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const context = $json.pessoa.contexto_memoria.actionDataContext || {};\nconst osId = context.os_id_selecionada;\n\nif (!osId) {\n  throw new Error(\"ID da OS não encontrado no contexto (os_id_selecionada).\");\n}\n\nreturn {\n  json: {\n    osId,\n    ...$json\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "get-os-id",
+      "name": "Get OS ID"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ordens_servico",
+          "mode": "list",
+          "cachedResultName": "ordens_servico"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "aguardando_pagamento",
+            "id": "={{ $json.osId }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "outputColumns": [
+            "*"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "id": "update-os",
+      "name": "Update OS Status",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO os_eventos (os_id, pessoa_id, tipo_evento, descricao, origem) VALUES ($1, $2, 'validacao', 'Vistoria de qualidade realizada. Status: APROVADO.', 'sistema');",
+        "options": {
+          "queryReplacement": "={{ $('Update OS Status').item.json.id }},{{ $('Start').item.json.pessoa.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        140
+      ],
+      "id": "insert-event",
+      "name": "Insert Event",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nome, whatsapp FROM pessoas WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Update OS Status').item.json.cliente_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        -140
+      ],
+      "id": "get-client",
+      "name": "Get Client Info",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Start').item.json.loja.config_json.evolutionapi.instanceName }}",
+        "remoteJid": "={{ $json.whatsapp }}",
+        "messageText": "=Olá {{ $json.nome }}! 🚗✨\n\nBoas notícias: A vistoria de qualidade foi concluída e seu veículo está pronto!\n\n💰 *Valor Total:* R$ {{ $('Update OS Status').item.json.valor_total }}\n\n🔑 *Chave Pix:* (Solicite ao balcão ou pague na retirada)\n\nVocê já pode vir buscar ou agendar a retirada. Ficamos no aguardo!",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -140
+      ],
+      "id": "notify-client",
+      "name": "Notify Client",
+      "credentials": {
+        "evolutionApi": {
+          "id": "OffPuCi6FSBEIiKv",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $('Start').item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "return-original",
+      "name": "Return Original Item"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get OS ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get OS ID": {
+      "main": [
+        [
+          {
+            "node": "Update OS Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update OS Status": {
+      "main": [
+        [
+          {
+            "node": "Get Client Info",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client Info": {
+      "main": [
+        [
+          {
+            "node": "Notify Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Client": {
+      "main": [
+        [
+          {
+            "node": "Return Original Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Event": {
+      "main": [
+        [
+          {
+            "node": "Return Original Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

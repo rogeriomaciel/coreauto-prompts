@@ -1,0 +1,96 @@
+{
+  "name": "COREAUTOCRM-ACTION-ADICIONAR-PROGRESSO-OS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $('Start').item.json.pessoa.contexto_memoria.actionDataContext.active_os_id }}",
+            "pessoa_id": "={{ $('Start').item.json.pessoa.id }}",
+            "tipo_evento": "checklist_progresso",
+            "descricao": "={{ $('Start').item.json.respostaIA.actionData.descricao_progresso }}",
+            "origem": "whatsapp"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        600,
+        240
+      ],
+      "id": "insert-evento-progresso",
+      "name": "Registrar Progresso",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $('Start').item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        240
+      ],
+      "id": "restore-context",
+      "name": "Retornar Contexto"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Registrar Progresso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Progresso": {
+      "main": [
+        [
+          {
+            "node": "Retornar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

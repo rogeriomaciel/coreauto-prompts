@@ -1,0 +1,45 @@
+{
+  "name": "COREAUTOCRM-ACTION-INICIAR-PROCESSAMENTO-ARQUIVOS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Aqui seria disparado o workflow de ingestão (Download -> OCR -> Vector Store)\n// Por enquanto, apenas logamos que iniciou.\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -240
+      ],
+      "id": "trigger-ingestion",
+      "name": "Trigger Ingestion"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Trigger Ingestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

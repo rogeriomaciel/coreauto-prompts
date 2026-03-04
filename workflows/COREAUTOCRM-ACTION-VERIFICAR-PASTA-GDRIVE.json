@@ -1,0 +1,70 @@
+{
+  "name": "COREAUTOCRM-ACTION-VERIFICAR-PASTA-GDRIVE",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Simulação de listagem de arquivos do GDrive\n// Em produção, usar o nó Google Drive -> List\nconst link = $json.respostaIA.actionData.link_pasta_gdrive;\nconst arquivos = [\n  { name: \"Tabela de Precos 2024.pdf\", mimeType: \"application/pdf\" },\n  { name: \"Manual Motor AP.pdf\", mimeType: \"application/pdf\" }\n];\n\n// Injeta no contexto para a IA ver na próxima rodada\nlet contexto = $json.pessoa.contexto_memoria || {};\nif (!contexto.actionDataContext) contexto.actionDataContext = {};\n\ncontexto.actionDataContext.arquivos_encontrados = arquivos;\n\nreturn { json: { ...$json, arquivos_encontrados: arquivos } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -240
+      ],
+      "id": "listar-arquivos",
+      "name": "Listar Arquivos (Simulado)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -240
+      ],
+      "id": "final-output",
+      "name": "Final Output"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Listar Arquivos (Simulado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Arquivos (Simulado)": {
+      "main": [
+        [
+          {
+            "node": "Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

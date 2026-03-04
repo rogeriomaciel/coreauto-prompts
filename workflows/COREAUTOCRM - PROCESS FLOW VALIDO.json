@@ -1,0 +1,344 @@
+{
+  "name": "COREAUTOCRM - PROCESS FLOW VALIDO",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "93f54961-87be-4f10-b45b-797a8517593d",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        336,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\nif (!$json.msg) throw new Error('objeto msg inválido');\nif (!$json.pessoa) throw new Error('objeto pessoa inválido');\nif (!$json.loja) throw new Error('objeto loja inválido');\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -160
+      ],
+      "id": "61269823-602e-4d13-9c24-45388aff0ee0",
+      "name": "Validate Input",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e6f533fb-a1f3-408e-be6d-72737c74cbd2",
+              "leftValue": "={{ $json.msg.fromMe }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        768,
+        -160
+      ],
+      "id": "746fac01-29c5-463e-99d5-232194af0ed4",
+      "name": "If fromMe"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LEjNK1YohSJEkvAG",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/LEjNK1YohSJEkvAG",
+          "cachedResultName": "COREAUTOCRM-GET-PROMPT"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "loja_prompt_id",
+            ""
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        -80
+      ],
+      "name": "Call COREAUTOCRM-GET-PROMPT",
+      "id": "4b1c30c4-f0b8-4255-886b-e465ea430f67"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        -80
+      ],
+      "id": "23bd9501-2dc2-4d2e-9c27-794dea01527f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4egJ0SCudegjYeAJ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4egJ0SCudegjYeAJ",
+          "cachedResultName": "COREAUTOCRM-RESUMIDOR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        -80
+      ],
+      "name": "Call COREAUTOCRM-RESUMIDOR",
+      "id": "4bc259a5-8639-452d-b57a-c55df8a16a64"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Hbr10drG2oAY1yxx",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Hbr10drG2oAY1yxx",
+          "cachedResultName": "COREAUTOCRM-EXECUTAR-PROMPT"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        -80
+      ],
+      "name": "Call COREAUTOCRM-EXECUTAR-PROMPT",
+      "id": "38c24f22-ed22-4766-88b4-3ed06b3fda1b"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GnKIXqPodH7jwMWs",
+          "mode": "list"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2064,
+        -80
+      ],
+      "name": "Call COREAUTOCRM-PROCESSAR-RESPOSTA-IA",
+      "id": "69af3af0-261e-458e-95cd-4f8df49be7bd"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "msg": {
+            "validPayload": true,
+            "fromMe": false,
+            "senderPhone": "556296232227",
+            "incomingMessage": "oi",
+            "connectedPhone": "556296425277",
+            "senderName": "Rogério Maciel",
+            "messageType": "TEXT",
+            "incomingAudio": []
+          },
+          "pessoa": {
+            "id": "308a4429-1b0c-4adf-9247-2f54ad5b864f",
+            "loja_id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "nome": "Rogério Maciel",
+            "whatsapp": "556296232227",
+            "picture_url": "https://pps.whatsapp.net/v/t61.24694-24/473407167_1654610852147373_8423876239081890823_n.jpg?ccb=11-4&oh=01_Q5Aa3wGItWBLPVMFsB-jg8B8fZEIlKb5Xp4aVqL63cYXYZOvxw&oe=69B11C5C&_nc_sid=5e03e0&_nc_cat=110",
+            "tipo": "cliente",
+            "contexto_memoria": {
+              "resumo_historico": "",
+              "conversas_recentes": []
+            },
+            "status": "ativo",
+            "created_at": "2026-03-01T09:32:38.386Z",
+            "fila_mensagens": {},
+            "last_message_at": "2026-03-01T09:32:39.766Z",
+            "start_process_at": "2026-03-01T09:32:47.813Z",
+            "processando_message": true
+          },
+          "loja": {
+            "id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "prompt_id": "cdcfa329-c519-4ff7-be7b-ff021b2692c7",
+            "nome": "Kadosh",
+            "whatsapp_loja": "556296425277",
+            "config_json": {
+              "evolutionapi": {
+                "apikey": "CxSFXk2tGLFW2WwqVR59jR",
+                "instanceName": "coreauto",
+                "EVOLUTIONAPI_URL_BASE": "https://evolution.rogeriomaciel.com.br"
+              }
+            },
+            "dashboard_settings": {
+              "theme": "light",
+              "primary_color": "#007bff",
+              "visible_charts": [
+                "faturamento",
+                "os_status",
+                "produtividade"
+              ],
+              "refresh_interval": 300
+            },
+            "created_at": "2026-02-28T19:27:47.653Z"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "If fromMe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If fromMe": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Call COREAUTOCRM-GET-PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call COREAUTOCRM-GET-PROMPT": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM-RESUMIDOR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call COREAUTOCRM-RESUMIDOR": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM-EXECUTAR-PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call COREAUTOCRM-EXECUTAR-PROMPT": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM-PROCESSAR-RESPOSTA-IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call COREAUTOCRM-PROCESSAR-RESPOSTA-IA": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "fa094673-3372-4f0a-8a94-762cc5b8308d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "FzQ6VVlykTtltcle",
+  "tags": []
+}

@@ -1,0 +1,96 @@
+{
+  "name": "COREAUTOCRM-ACTION-VOLTAR-LOBBY",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Limpa a OS ativa do contexto\nlet contexto = $json.pessoa.contexto_memoria || {};\nif (contexto.actionDataContext) {\n  delete contexto.actionDataContext.os_id_selecionada;\n  contexto.actionDataContext.faseCore = 'LOBBY_OPERACIONAL';\n}\n\nreturn { json: { ...$json, contexto_atualizado: contexto } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -240
+      ],
+      "id": "limpar-contexto",
+      "name": "Limpar Contexto"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contexto_memoria": "={{ $json.contexto_atualizado }}",
+            "id": "={{ $json.pessoa.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        160,
+        -240
+      ],
+      "id": "update-pessoa",
+      "name": "Update Pessoa",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Limpar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar Contexto": {
+      "main": [
+        [
+          {
+            "node": "Update Pessoa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

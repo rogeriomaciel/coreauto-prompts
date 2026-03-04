@@ -1,0 +1,172 @@
+{
+  "name": "COREAUTOCRM-ACTION-FINALIZAR-OS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "if (!($json.os_ativa && $json.os_ativa.id)) throw new Error('Objeto os_ativa inválido ou sem ID.');\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -240
+      ],
+      "id": "validate-inputs",
+      "name": "Validate Inputs"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ordens_servico",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "finalizado",
+            "data_conclusao": "={{ $now }}",
+            "id": "={{ $json.os_ativa.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        160,
+        -240
+      ],
+      "id": "update-os-status",
+      "name": "Update OS Status",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $json.os_ativa.id }}",
+            "tipo_evento": "finalizacao",
+            "descricao": "OS Finalizada. Intenção de retirada: {{ $json.respostaIA.actionData.intencao_retirada }}",
+            "pessoa_id": "={{ $json.pessoa.id }}"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        -240
+      ],
+      "id": "register-event",
+      "name": "Register Event",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -240
+      ],
+      "id": "final-output",
+      "name": "Final Output"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Validate Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Inputs": {
+      "main": [
+        [
+          {
+            "node": "Update OS Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update OS Status": {
+      "main": [
+        [
+          {
+            "node": "Register Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register Event": {
+      "main": [
+        [
+          {
+            "node": "Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "name": "COREAUTOCRM-ACTION-REGISTRAR-DIAGNOSTICO",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ordens_servico",
+          "mode": "list",
+          "cachedResultName": "ordens_servico"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.pessoa.contexto_memoria.actionDataContext.active_os_id }}",
+            "status": "aguardando_precificacao",
+            "km_veiculo": "={{ $json.respostaIA.actionData.km_veiculo }}",
+            "orcamento_json": "={{ JSON.stringify({ pecas: $json.respostaIA.actionData.itens_pecas, mao_de_obra: $json.respostaIA.actionData.tempo_mao_de_obra_estimado }) }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        600,
+        240
+      ],
+      "id": "update-os",
+      "name": "Update OS Orcamento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $('Start').item.json.pessoa.contexto_memoria.actionDataContext.active_os_id }}",
+            "pessoa_id": "={{ $('Start').item.json.pessoa.id }}",
+            "tipo_evento": "diagnostico",
+            "descricao": "Diagnóstico técnico registrado. Aguardando precificação.",
+            "origem": "sistema"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        820,
+        240
+      ],
+      "id": "insert-evento",
+      "name": "Registrar Evento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $('Start').item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        240
+      ],
+      "id": "restore-context",
+      "name": "Retornar Contexto"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Update OS Orcamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update OS Orcamento": {
+      "main": [
+        [
+          {
+            "node": "Registrar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Evento": {
+      "main": [
+        [
+          {
+            "node": "Retornar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

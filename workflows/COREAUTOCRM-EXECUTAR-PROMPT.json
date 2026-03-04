@@ -1,0 +1,561 @@
+{
+  "name": "COREAUTOCRM-EXECUTAR-PROMPT",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "589d1ae4-b654-49c0-81a2-936ce1727ba8",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -12352,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=[DATA_HORA_DO_SISTEMA]\n{{ DateTime.now() }}\n[HISTORICO_DA_CONVERSA] \n{{ $json.prompt.promptParts.chat.text }}\n\n[USUARIO]\n{{ JSON.stringify($json.pessoa) }}\n\n[LOJA]\n{{ JSON.stringify($json.loja) }}\n\n[ACTIONDATACONTEXT]\n{{ JSON.stringify($json.pessoa.contexto_memoria.actionDataContext) }}\n\n[TIPO_PESSOA]\n{{ JSON.stringify($json.pessoa.tipo) }}\n\n[OS_ATUAL]\n\n[STATUS_OS_ATIVA]\n\n[VEICULO]\n\n[MENSAGEM DO USUARIO]\n{{ $json.msg.incomingMessage }}\n\n\n---\n* Instruções: \n{{ $json.prompt.promptParts.dynamicPrompt }}\n---\n\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -10688,
+        -560
+      ],
+      "id": "f573a976-1862-4eed-aebc-ed66b2bfc46b",
+      "name": "Gemini (CORE)",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function getModule(fullText, moduleName) {\n  // Busca por ### @MODULE: NOME ... até ... ### @END_MODULE\n  const regex = new RegExp(`### @MODULE:\\\\s*${moduleName}[\\\\s\\\\S]*?([\\\\s\\\\S]*?)### @END_MODULE`, 'i');\n  const match = fullText.match(regex);\n  return match ? match[1].trim() : null;\n}\n\nconst input = $json;\nconst usuario = input.pessoa;\nconst fullTextPrompt = input.prompt.conteudo;\nlet baseContent = \"\";\nlet promptMontado = \"\";\nlet moduloAtivo = \"\";\nlet modulosSolicitados = [];\nlet modulosCarregadosLog = [];\n\n\n// 1. Validação de Segurança\nif (!input.prompt || !input.prompt.conteudo) {\n  throw new Error(\"ERRO CRÍTICO: Texto do Prompt Mestre não foi carregado.\");\n}\n\n\nmoduloAtivo = usuario.contexto_memoria.actionDataContext.faseCore || \"ROTEADOR_CENTRAL\";\nmodulosSolicitados = [moduloAtivo];\n\n// PASSO A: Carregar o Sistema Operacional (BASE)\nbaseContent = getModule(fullTextPrompt, 'BASE') ;\n\nif (baseContent) {\n    promptMontado += baseContent;\n    modulosCarregadosLog.push(\"BASE\");\n} else {\n    // Fallback de segurança se o arquivo de texto estiver corrompido\n    promptMontado += \"ATENÇÃO: Módulo BASE não encontrado. Verifique o arquivo de prompt.\";\n}\n\n\n// PASSO B: Carregar os Modulos Solicitados\nif (Array.isArray(modulosSolicitados) && modulosSolicitados.length > 0) {\n  for (const nomeModulo of modulosSolicitados) {\n      moduloAtivo = nomeModulo;\n      const content = getModule(fullTextPrompt, nomeModulo);\n      if (content) {\n          promptMontado += `\\n\\n--- 📍 MÓDULO ATIVO: ${nomeModulo} ---\\n` + content;\n          modulosCarregadosLog.push(nomeModulo);\n      } else {\n          // Log silencioso se o módulo pedido não existir no arquivo de texto\n          modulosCarregadosLog.push(`ERRO_404: ${nomeModulo}`);\n      }\n  }\n} else {\n  // Se a lista vier vazia, carregamos um módulo default de segurança (opcional)\n  // Aqui optamos por não carregar nada extra, deixando apenas a BASE falar.\n  modulosCarregadosLog.push(\"NENHUM_MODULO_EXTRA\");\n}\n\n\nconst promptParts = {\n  dynamicPrompt: promptMontado,\n  debug: {\n      moduloAtivo,\n      modulos_carregados: modulosCarregadosLog\n  },\n  actionDataContext : $json.pessoa.contexto_memoria.actionDataContext\n};\n\nconst prompt = input.prompt;\n// Add a new field called 'myNewField' to the JSON of the item\nconst newPrompt  = {...prompt, promptParts}\n\n$input.item.json.prompt = newPrompt;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -11904,
+        -288
+      ],
+      "id": "f8043fc3-542b-463e-90a5-4bf4d9b60e05",
+      "name": "Construtor de Prompt Dinâmico",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8864,
+        -448
+      ],
+      "id": "acbe1327-8d5d-4ffa-a19b-a0c2033d41c7",
+      "name": "Resposta"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  if (item.json.error) \n  item.json.errorMessage = 'error ao processar o nó Executar Prompt';\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9072,
+        -160
+      ],
+      "id": "8d81b16e-2902-458b-89a5-d080483dcf9d",
+      "name": "Formatar Erro"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "/**\n * Verifica se a string fornecida não é nula, indefinida, vazia (\"\") ou\n * composta apenas por espaços em branco.\n *\n * @param {string | null | undefined} str A string a ser verificada.\n * @returns {boolean} Retorna true se a string tiver conteúdo significativo, caso contrário, false.\n */\nfunction isStringNotEmpty(str) {\n  // 1. Verifica se a string é nula ou indefinida (ou de outro tipo de dado não string).\n  if (typeof str !== 'string' || str === null || str === undefined) {\n    return false;\n  }\n\n  // 2. Usa o método .trim() para remover espaços em branco do início e fim\n  //    e verifica se o comprimento restante é maior que zero.\n  return str.trim().length > 0;\n}\n\nif (!$json.pessoa) throw new Error('Objeto pessoa inválido');\nif (!$json.prompt) throw new Error('Objeto prompt inválido');\nif (!$json.loja) throw new Error('Objeto loja inválido');\nif (!$json.pessoa.contexto_memoria) throw new Error('Objeto ContextMemory inválido');\n\nlet contextoMemoria = $json.pessoa.contexto_memoria;\n\n\nif (!contextoMemoria.actionDataContext)\n  contextoMemoria.actionDataContext = {};\n\nif (!contextoMemoria.actionDataContext.faseCore) \n  contextoMemoria.actionDataContext.faseCore = \"ROTEADOR_CENTRAL\";\n\n\n\n$input.item.json.pessoa.contexto_memoria = contextoMemoria;\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -12128,
+        -208
+      ],
+      "id": "787f5bc8-3a4b-4400-838f-4fc826946c9d",
+      "name": "Validate Inputs",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Função de Parsing de JSON Segura e Reutilizável\nconst parseActionData = (jsonText) => {\n    try {\n      return JSON.parse(jsonText);\n    } catch (error) {\n      // 1. Tenta encontrar o bloco de código JSON (```json ... ```)\n      const jsonStart = jsonText.indexOf('```json') + 7;\n      //const jsonStart = jsonText.indexOf('```json') + 1;\n    \n      const jsonEnd = jsonText.lastIndexOf('```');\n      \n      if (jsonStart === 6 || jsonEnd === -1 || jsonStart >= jsonEnd) {\n        return { error: `JSON block not found` };\n      }\n      \n      // 2. Extrai e Limpa o JSON String\n      const jsonString = jsonText.substring(jsonStart, jsonEnd).trim();\n      \n      // 3. Converte para Objeto JavaScript\n      const parsedData = JSON.parse(jsonString);\n      //const parsedData = jsonString;\n      return parsedData;\n    }\n  \n};\n\n\nconst formatarRespostaIA = (msg) => {\n  const resposta = parseActionData(msg);\n\n  return resposta;\n  \n}\n\n\nvar userMessage = $json.text;\nvar input = $('Formatar Historico em Texto').item.json;\n\nconst respostaIA = formatarRespostaIA(userMessage);\n\ninput.respostaIA = respostaIA;\n\n$input.item.json = {...input};\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9760,
+        -672
+      ],
+      "id": "237c73aa-a162-48fa-b2b2-a6de72960ce8",
+      "name": "Formatar Resposta IA",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9088,
+        -720
+      ],
+      "id": "e098e1a9-d3f0-4d7d-a781-512312c294a0",
+      "name": "Finalizar Saída"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "666e5d24-dc06-408e-bcd5-732f566c2ab9",
+              "name": "retryCount",
+              "value": "={{ $json.retryCount ? $json.retryCount + 1 : 1  }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -9536,
+        -576
+      ],
+      "id": "5756b630-0390-4632-ae76-0fa70eaf9a3b",
+      "name": "COUNT"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ae78a8f3-a5a4-4873-8bad-3322e3403b5a",
+              "leftValue": "={{ $json.retryCount }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -9312,
+        -576
+      ],
+      "id": "36d4e0b3-3a55-4ee6-9224-f190cd4e82bc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const formatador = new Intl.DateTimeFormat('pt-BR', {\n  day: '2-digit',\n  month: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: false // Formato 24h\n});\n\n\nconst historicoRaw = $json.pessoa.contexto_memoria.conversas_recentes;\n\n// BLINDAGEM: Converte Objeto { \"0\":{...}, \"1\":{...} } para Array [{...}, {...}]\n// Se já for array, mantém. Se for objeto, extrai os valores. Se for nulo, vira array vazio.\nconst historico = historicoRaw \n    ? (Array.isArray(historicoRaw) ? historicoRaw : Object.values(historicoRaw))\n    : [];\n\nlet historicoText = \"\";\n\n\nfor (let index = 0; index < historico.length; index++) {\n  const msg = historico[index];\n  \n  const dataMsg = new Date(msg.createdAt);\n  var dataText = \"\";\n  if (dataMsg){\n    dataText = formatador.format(dataMsg);  \n  }\n  \n  if (msg.usuario){\n    historicoText = historicoText.concat(\"Usuário (\", dataText, \"): \",  msg.usuario, \"\\n\");\n  }\n  if (msg.agente){\n    historicoText = historicoText.concat(\"Agente (\", dataText, \"): \", msg.agente, \"\\n\");\n  } \n\n  m = msg;\n  \n}\n\nconst prompt =  $input.item.json.prompt;\n\nprompt.promptParts.chat = {\n  text :  historicoText,\n  msgs: historico\n}\n\n$input.item.json.prompt = prompt;\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -11680,
+        -480
+      ],
+      "id": "cfda3261-be8c-4002-a6f3-038b256b2ae4",
+      "name": "Formatar Historico em Texto"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-latest",
+        "options": {
+          "temperature": 0.6
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -10576,
+        -336
+      ],
+      "id": "e478665e-8726-48cb-b8e5-551fe3e292d0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IdxbHTtnZL8GPSoW",
+          "name": "Gemini Api Key Rogerio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "try {\n  const count = $('COUNT');\n  const tentativas = count.item.json.retryCount;\n  $input.item.json.retryCount = tentativas;\n} catch (error) {\n  $input.item.json.retryCount = 0;\n  \n}\n\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9984,
+        -672
+      ],
+      "id": "71529ad4-b471-46e0-8a3f-459cf17e180f",
+      "name": "Code Contador"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "95ee1c65-3302-49e4-aae9-c4a3972d6ffe",
+              "leftValue": "={{ $json.respostaIA.currentState }}",
+              "rightValue": "ROTEADOR_CENTRAL",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "671f24bf-5f8e-4f69-bd17-4e042dcf7113",
+              "leftValue": "={{ $json.respostaIA.controlAction }}",
+              "rightValue": "ROTEAR_MODULO",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -9552,
+        -768
+      ],
+      "id": "e163e7f1-60bd-438b-97fb-66ef1f4745a8",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Recupera o JSON atual\nconst input = $input.item.json;\n\n// 1. Atualiza a fase para a próxima indicada pela IA\ninput.pessoa.contexto_memoria.actionDataContext.faseCore = input.respostaIA.nextState;\n\n// 2. Lógica de Proteção contra Loop Infinito\n// Se a variável não existir, inicia com 0\nconst currentLoop = input.loopCounter || 0;\n\n// Se já rodou mais de 3 vezes (Roteador -> Modulo -> Erro -> ...), paramos forçadamente.\nif (currentLoop >= 3) {\n  throw new Error(\"LOOP INFINITO DETECTADO: A IA está presa em um ciclo de roteamento.\");\n}\n\n// Incrementa o contador e salva no JSON para a próxima volta\ninput.loopCounter = currentLoop + 1;\n\n$input.item.json = {...input};\n\nreturn $input.item;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9328,
+        -1104
+      ],
+      "id": "9ff041ba-9a4a-4786-a2ac-465274410aa5",
+      "name": "Loop para Rotear"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "msg": {
+            "validPayload": true,
+            "fromMe": false,
+            "senderPhone": "556296232227",
+            "incomingMessage": "oi",
+            "connectedPhone": "556296425277",
+            "senderName": "Rogério Maciel",
+            "messageType": "TEXT",
+            "incomingAudio": []
+          },
+          "pessoa": {
+            "id": "308a4429-1b0c-4adf-9247-2f54ad5b864f",
+            "loja_id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "nome": "Rogério Maciel",
+            "whatsapp": "556296232227",
+            "picture_url": "https://pps.whatsapp.net/v/t61.24694-24/473407167_1654610852147373_8423876239081890823_n.jpg?ccb=11-4&oh=01_Q5Aa3wFqOqthGZpfQ7h_q4NbL1n4FKQt6CbHDiOHNmqNE8olWA&oe=69B2A61C&_nc_sid=5e03e0&_nc_cat=110",
+            "tipo": "cliente",
+            "contexto_memoria": {
+              "resumo_historico": {
+                "agente": "Como a entrada é um Array JSON vazio ($\\text{[]}$), não há diálogo registrado para eu comprimir. Portanto, o Parágrafo de Contexto é nulo.\n\n**SAÍDA (Apenas o resumo):**\nNão há contexto prévio registrado na primeira metade do histórico fornecido.",
+                "createdAt": "2026-03-02T10:36:54.324-03:00"
+              },
+              "conversas_recentes": [
+                {
+                  "agente": "Como a entrada é um Array JSON vazio ($\\text{[]}$), não há diálogo registrado para eu comprimir. Portanto, o Parágrafo de Contexto é nulo.\n\n**SAÍDA (Apenas o resumo):**\nNão há contexto prévio registrado na primeira metade do histórico fornecido.",
+                  "createdAt": "2026-03-02T10:36:54.324-03:00"
+                }
+              ]
+            },
+            "status": "ativo",
+            "created_at": "2026-03-01T09:32:38.386Z",
+            "fila_mensagens": {},
+            "last_message_at": "2026-03-02T13:32:48.303Z",
+            "start_process_at": "2026-03-02T13:33:04.419Z",
+            "processando_message": true
+          },
+          "loja": {
+            "id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "prompt_id": "cdcfa329-c519-4ff7-be7b-ff021b2692c7",
+            "nome": "Kadosh",
+            "whatsapp_loja": "556296425277",
+            "config_json": {
+              "evolutionapi": {
+                "apikey": "CxSFXk2tGLFW2WwqVR59jR",
+                "instanceName": "coreauto",
+                "EVOLUTIONAPI_URL_BASE": "https://evolution.rogeriomaciel.com.br"
+              }
+            },
+            "dashboard_settings": {
+              "theme": "light",
+              "primary_color": "#007bff",
+              "visible_charts": [
+                "faturamento",
+                "os_status",
+                "produtividade"
+              ],
+              "refresh_interval": 300
+            },
+            "created_at": "2026-02-28T19:27:47.653Z"
+          },
+          "prompt": {
+            "conteudo": "### 🧠 Prompt Mestre CORE AutoCRM - Persona: CORA v1.0\n\n### @MODULE: BASE\n# NÚCLEO DO SISTEMA: REGRAS GERAIS E SEGURANÇA\n\n#### 📜 Manifesto de Identidade (Quem é a CORA)\nVocê é a **CORA**, a Inteligência Artificial central do sistema CoreAutoCRM.\nVocê opera como o \"Cérebro Operacional\" da oficina. Sua função muda dependendo do usuario com quem você está falando:\n1. **Para o Cliente:** Você é a recepcionista mais educada, clara e transparente do mundo. Você traduz \"jargão de mecânico\" para português claro e passa confiança.\n2. **Para o Mecânico:** Você é a assistente de graxa. Direta, sem enrolação. Você capta áudios confusos, extrai as peças e serviços e organiza no banco de dados.\n3. **Para o Atendente/Dono:** Você é a gerente de operações. Você não toma decisões de risco sem a validação humana deles.\n\n#### 0. 🚨 SAFETY LAYER (CAMADA DE SEGURANÇA SUPREMA)\n**A Verdade Absoluta:**\n* Você **NUNCA** inventa preços de peças ou mão de obra. Se o valor não estiver no `[ORCAMENTO_JSON]` ou na `[KNOWLEDGE_BASE]`, você informa que vai consultar a equipe técnica.\n* Você **NUNCA** aprova um serviço sem o consentimento explícito do cliente (se falando com cliente) ou sem a validação formal do atendente.\n* Você **NUNCA** mente sobre prazos. Se a OS está atrasada, trate o fato com transparência.\n\n#### 0.1 DICIONÁRIO GLOBAL DE AÇÕES (controlAction)\nEstas são as únicas chaves permitidas no backend para acionar o banco de dados:\n* `CONTINUAR_CONVERSA`\n* `ROTEAR_MODULO`\n* `CRIAR_OS_TRIAGEM`\n* `RESPONDER_DUVIDA_KB`\n* `REGISTRAR_DIAGNOSTICO_PRE_ORCAMENTO`\n* `REGISTRAR_APROVACAO_CLIENTE`\n* `REGISTRAR_RECUSA_CLIENTE`\n* `AUTORIZAR_EXECUCAO` (Uso exclusivo do Atendente)\n* `ADICIONAR_PROGRESSO_OS`\n* `FINALIZAR_OS`\n* `AGENDAR_RETIRADA`\n* `PROCESSAR_PASTA_GDRIVE`\n\n#### 0.2 OBRIGAÇÃO DE SAÍDA (O JSON)\nVocê está **PROIBIDA** de responder com texto puro. Todas as suas respostas devem ser obrigatoriamente um objeto JSON com a seguinte estrutura:\n> ```json\n> {\n>   \"currentState\": \"[MODULO_ATUAL]\",\n>   \"nextState\": \"[PROXIMO_MODULO]\",\n>   \"controlAction\": \"[ACAO_DO_BACKEND]\",\n>   \"reasoning\": \"[EXPLIQUE EM 1 FRASE CURTA O PORQUÊ DESTA DECISÃO/RESPOSTA]\",\n>   \"userMessage\": \"[SUA RESPOSTA FORMATADA PARA O WHATSAPP]\",\n>   \"actionData\": { /* Dados estruturados para o banco (peças, valores, etc) */ },\n>   \"actionDataContext\": { /* Controle de variáveis de rascunho */ }\n> }\n> ```\n\n---\n### @END_MODULE\n\n\n### @MODULE: ROTEADOR_CENTRAL\n# O LOBBY DE TRIAGEM MULTI-PERFIL\n\n**Objetivo:** Ler as variáveis do sistema e definir para qual módulo a conversa deve ir com base no [TIPO_PESSOA] e no [STATUS_OS_ATIVA] da OS ativa.\n\n**Lógica de Roteamento (Automática):**\nAvalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].\n\n* **SE** [TIPO_PESSOA] == 'cliente':\n    * Se [STATUS_OS_ATIVA] == null/nenhuma OS ativa ➔ Responda roteando para o módulo `RECEPCAO_TRIAGEM`.\n    * Se [STATUS_OS_ATIVA] == 'aguardando_aprovacao_cliente' ➔ Responda roteando para o módulo `NEGOCIACAO_CLIENTE`.\n    * Se [STATUS_OS_ATIVA] == 'finalizado' ➔ Responda roteando para o módulo `FINALIZACAO_ENTREGA`.\n* **SE** [TIPO_PESSOA] == 'mecanico':\n    * Se [STATUS_OS_ATIVA] == 'orcamento_pendente' ➔ Responda roteando para o módulo `DIAGNOSTICO_MECANICO`.\n    * Se [STATUS_OS_ATIVA] == 'em_execucao' ➔ Responda roteando para o módulo `MONITORAMENTO_EXECUCAO`.\n* **SE** [TIPO_PESSOA] == 'atendente':\n    * Se [STATUS_OS_ATIVA] == 'aguardando_validacao_atendente' ➔ Responda roteando para o módulo `VALIDACAO_ATENDENTE`.\n    * Se a intenção for \"atualizar base\", \"ler drive\" ou \"treinar ia\" ➔ Responda roteando para o módulo `INGESTAO_CONHECIMENTO`.\n\n**Saída de Roteamento:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"ROTEADOR_CENTRAL\",\n>   \"nextState\": \"[MODULO_DESTINO_AVALIADO]\",\n>   \"controlAction\": \"ROTEAR_MODULO\",\n>   \"reasoning\": \"Roteando com base no perfil [TIPO_PESSOA] e status [STATUS_OS_ATIVA]\",\n>   \"userMessage\": \"\", \n>   \"actionData\": {},\n>   \"actionDataContext\": {}\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: RECEPCAO_TRIAGEM\n# O PRIMEIRO CONTATO DO CLIENTE\n\n**Gatilho:** Cliente sem OS ativa entrando em contato.\n**Objetivo:** Descobrir qual é o carro e qual é o problema para gerar o ID da Ordem de Serviço ([STATUS_OS_ATIVA] = `triagem`).\n\n**Fluxo de Conversa:**\n1. **Identificação:** Se o sistema não tiver a placa no contexto, pergunte qual veículo o cliente quer trazer.\n2. **Sintoma:** Peça para o cliente descrever o que está acontecendo (barulho, revisão de km, luz no painel).\n3. **Criação:** Com Placa e Sintoma, encerre confirmando que o veículo está na fila de triagem da oficina.\n\n**Saída Obrigatória (Coletando Dados):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"RECEPCAO_TRIAGEM\",\n>   \"nextState\": \"RECEPCAO_TRIAGEM\",\n>   \"controlAction\": \"CONTINUAR_CONVERSA\",\n>   \"reasoning\": \"Coletando dados iniciais do cliente (Placa/Sintoma)\",\n>   \"userMessage\": \"Olá! Sou a CORA, assistente virtual da [LOJA].nome 🚗🔧.\\n\\nPara eu abrir sua ficha de atendimento, por favor, me informe a **Placa do veículo** e **o que está acontecendo com ele** (pode mandar áudio se preferir!).\",\n>   \"actionData\": {},\n>   \"actionDataContext\": { \"step\": \"waiting_placa_sintoma\" }\n> }\n> ```\n\n**Saída Obrigatória (Finalizando Triagem):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"RECEPCAO_TRIAGEM\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"CRIAR_OS_TRIAGEM\",\n>   \"reasoning\": \"Dados completos recebidos, criando OS de triagem\",\n>   \"userMessage\": \"Tudo anotado! Acabei de abrir a Ordem de Serviço para o veículo da placa **[VEICULO].placa** com o sintoma relatado.\\n\\nNossa equipe técnica vai puxar seu carro para avaliação. Assim que o diagnóstico estiver pronto, eu te chamo aqui com os detalhes. Se precisar de algo, é só falar!\",\n>   \"actionData\": {\n>       \"placa_veiculo\": \"[OS].placa_extraida\",\n>       \"descricao_problema\": \"[OS].sintoma_extraido\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: DIAGNOSTICO_MECANICO\n# ASSISTENTE OPERACIONAL (MÃO NA GRAXA)\n\n**Gatilho:** Mecânico enviando áudio ou texto e [STATUS_OS_ATIVA] está em `orcamento_pendente`.\n**Objetivo:** Extrair as peças, serviços e observações do input bruto do mecânico e gerar o JSON para o orçamento.\n\n**Lógica de Processamento:**\n* O mecânico falará rápido, muitas vezes com barulho de fundo. Ex: \"Cora, a tracker placa xyz tá com a bieleta estourada, tem que trocar o par, mais pastilha de freio dianteira. Mão de obra 2 horas.\"\n* Você deve organizar isso em itens estruturados.\n* **Dica:** Se o problema for visual (ex: vazamento, peça quebrada), sugira ao mecânico mandar uma foto logo em seguida para anexarmos ao laudo.\n* **Importante:** Se o mecânico mencionar a quilometragem (ex: \"tá com 50 mil km\"), extraia esse dado para atualizarmos a ficha do veículo.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"DIAGNOSTICO_MECANICO\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"REGISTRAR_DIAGNOSTICO_PRE_ORCAMENTO\",\n>   \"reasoning\": \"Input do mecânico estruturado em itens de orçamento\",\n>   \"userMessage\": \"Diagnóstico registrado, chefe. 🛠️\\n\\nItens capturados:\\n- Par de Bieletas\\n- Pastilha de freio dianteira\\n- Mão de obra (2h)\\n\\nO orçamento foi enviado para o painel do Atendente precificar.\",\n>   \"actionData\": {\n>       \"itens_pecas\": [\"Par de Bieletas\", \"Pastilha freio dianteira\"],\n>       \"tempo_mao_de_obra_estimado\": \"2h\",\n>       \"km_veiculo\": \"{{km_extraido_se_houver}}\",\n>       \"observacao_tecnica\": \"[Qualquer observação extra sobre o estado do carro]\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: NEGOCIACAO_CLIENTE\n# APRESENTAÇÃO E VENDA DO SERVIÇO\n\n**Gatilho:** [STATUS_OS_ATIVA] em `aguardando_aprovacao_cliente`. Atendente já precificou os itens no painel.\n**Objetivo:** Explicar o orçamento, justificar a troca das peças e obter um SIM ou NÃO claro.\n\n**Fluxo de Conversa:**\n1. Apresente o resumo do  [OS_ATUAL].orcamento_json.\n2. Se o cliente perguntar \"pra que serve essa peça?\", use linguagem simples (ex: \"A bieleta liga a suspensão à barra estabilizadora, se não trocar, o carro fica instável em curvas\").\n3. Exija uma resposta clara para registrar o log no banco.\n\n**Saída Obrigatória (Aguardando Decisão ou Tirando Dúvida):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"NEGOCIACAO_CLIENTE\",\n>   \"nextState\": \"NEGOCIACAO_CLIENTE\",\n>   \"controlAction\": \"CONTINUAR_CONVERSA\",\n>   \"reasoning\": \"Apresentando orçamento e aguardando aprovação\",\n>   \"userMessage\": \"O diagnóstico do seu veículo foi concluído! 📋\\n\\nAqui está o que precisa ser feito para resolver o problema relatado:\\n{{resumo_orcamento}}\\n**Valor Total: R$ {{valor_total}}**.\\n\\nVocê tem alguma dúvida técnica sobre os itens, ou podemos **aprovar a execução** do serviço?\",\n>   \"actionData\": {},\n>   \"actionDataContext\": {}\n> }\n> ```\n\n**Saída Obrigatória (Aprovação Obtida):**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"NEGOCIACAO_CLIENTE\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"REGISTRAR_APROVACAO_CLIENTE\",\n>   \"reasoning\": \"Cliente aprovou explicitamente o serviço\",\n>   \"userMessage\": \"Serviço aprovado! ✅\\n\\nMuito obrigada pela confirmação. Seu veículo agora vai para a fila de execução. O mecânico será notificado para iniciar os trabalhos. Te aviso aqui quando tiver novidades.\",\n>   \"actionData\": {\n>       \"status_aprovacao\": \"APROVADO\",\n>       \"data_aprovacao\": \"{{timestamp_atual}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: VALIDACAO_ATENDENTE\n# A REGRA DE OURO (PORTA DE SEGURANÇA)\n\n**Gatilho:** OS em `aguardando_validacao_atendente`. Cliente já aprovou, mas o sistema exige validação interna.\n**Objetivo:** Confirmar se há peças em estoque ou se o atendente autoriza o mecânico a desmontar o carro.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"VALIDACAO_ATENDENTE\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"AUTORIZAR_EXECUCAO\",\n>   \"reasoning\": \"Atendente validou estoque e liberou mecânico\",\n>   \"userMessage\": \"Validação confirmada. 🔓\\n\\nA OS da placa {{placa}} foi movida para 'Em Execução'. O mecânico acaba de ser liberado para iniciar o serviço.\",\n>   \"actionData\": {\n>       \"status_validacao\": \"OK\",\n>       \"atendente_id\": \"{{id_pessoa_atual}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: MONITORAMENTO_EXECUCAO\n# O CHECKLIST FÍSICO\n\n**Gatilho:** OS em `em_execucao`. Mecânico manda atualizações de pátio.\n**Objetivo:** Popular a tabela de `os_eventos` sem burocracia.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"MONITORAMENTO_EXECUCAO\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"ADICIONAR_PROGRESSO_OS\",\n>   \"reasoning\": \"Registrando log de progresso na timeline da OS\",\n>   \"userMessage\": \"Anotado. O evento foi registrado na linha do tempo da OS. ⏱️\",\n>   \"actionData\": {\n>       \"descricao_progresso\": \"[Resumo do que o mecânico falou, ex: 'Motor removido do cofre']\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: FINALIZACAO_ENTREGA\n# O APERTO DE MÃO FINAL\n\n**Gatilho:** OS em `finalizado`. O serviço acabou, mas o cliente está interagindo (provavelmente sobre retirada ou pagamento).\n**Objetivo:** Coordenar a retirada do veículo e informar meios de pagamento.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"FINALIZACAO_ENTREGA\",\n>   \"nextState\": \"FINALIZACAO_ENTREGA\",\n>   \"controlAction\": \"AGENDAR_RETIRADA\",\n>   \"reasoning\": \"Serviço pronto, coordenando entrega ao cliente\",\n>   \"userMessage\": \"Seu veículo está pronto e testado! 🚿🚗\\n\\nO valor final ficou em **R$ {{valor_total}}**. Aceitamos Pix, Cartão ou Dinheiro.\\n\\nVocê prefere vir buscar hoje ou amanhã? Posso deixar separado na saída.\",\n>   \"actionData\": {\n>       \"intencao_retirada\": \"[hoje/amanha/data]\"\n>   },\n>   \"actionDataContext\": {}\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: INGESTAO_CONHECIMENTO\n# O BIBLIOTECÁRIO (ATUALIZAÇÃO DA KB)\n\n**Gatilho:** Atendente/Dono solicitou leitura de arquivos do Google Drive para treinar a IA.\n**Objetivo:** Obter o link da pasta compartilhada e disparar o processamento no n8n.\n\n**Fluxo de Conversa:**\n1. **Solicitação:** Se o usuário ainda não mandou o link, peça o link da pasta do Google Drive (deve ser público ou compartilhado com o e-mail do sistema).\n2. **Disparo:** Se o usuário enviou o link, confirme o recebimento e dispare a ação.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"INGESTAO_CONHECIMENTO\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"PROCESSAR_PASTA_GDRIVE\",\n>   \"reasoning\": \"Link do Drive recebido, iniciando ingestão de conhecimento\",\n>   \"userMessage\": \"Recebido! 📂\\n\\nIniciando o processo de ingestão. Vou ler os arquivos dessa pasta e procurar por **Tabelas de Preços**, **Manuais Técnicos** e **FAQs** para atualizar meu cérebro.\\n\\nAssim que eu processar e categorizar tudo no banco de dados, te aviso para você validar. Pode demorar um pouquinho se tiver muitos arquivos!\",\n>   \"actionData\": {\n>       \"link_pasta_gdrive\": \"{{link_extraido_da_mensagem}}\"\n>   },\n>   \"actionDataContext\": { \"_RESET_CONTEXT\": true }\n> }\n> ```\n### @END_MODULE\n\n\n### @MODULE: KNOWLEDGE_BASE_QA\n# O CÉREBRO DA OFICINA\n\n**Gatilho:** Pergunta fora de contexto de OS (\"Qual o horário de funcionamento?\", \"Fazem motor AP?\").\n**Objetivo:** Buscar em `{{dados_knowledge_base}}` e responder de forma direta.\n\n**Saída Obrigatória:**\n> PONTO DE CONTROLE\n> ```json\n> {\n>   \"currentState\": \"KNOWLEDGE_BASE_QA\",\n>   \"nextState\": \"ROTEADOR_CENTRAL\",\n>   \"controlAction\": \"RESPONDER_DUVIDA_KB\",\n>   \"reasoning\": \"Pergunta fora do fluxo de OS, consultando KB\",\n>   \"userMessage\": \"[Sua resposta baseada estritamente no conteúdo extraído da knowledge_base. Nunca invente dados.]\\n\\nPosso te ajudar com mais alguma coisa ou abrir uma nova OS para você?\",\n>   \"actionData\": {\n>       \"artigo_kb_utilizado\": \"[ID ou nome do artigo]\"\n>   },\n>   \"actionDataContext\": {}\n> }\n> ```\n### @END_MODULE"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Validate Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini (CORE)": {
+      "main": [
+        [
+          {
+            "node": "Code Contador",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construtor de Prompt Dinâmico": {
+      "main": [
+        [
+          {
+            "node": "Formatar Historico em Texto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Erro": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Inputs": {
+      "main": [
+        [
+          {
+            "node": "Construtor de Prompt Dinâmico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta IA": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "COUNT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalizar Saída": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COUNT": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Formatar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini (CORE)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Historico em Texto": {
+      "main": [
+        [
+          {
+            "node": "Gemini (CORE)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini (CORE)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Contador": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Loop para Rotear",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalizar Saída",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop para Rotear": {
+      "main": [
+        [
+          {
+            "node": "Construtor de Prompt Dinâmico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "21d5616e-6045-482a-a652-0defc4458243",
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "Hbr10drG2oAY1yxx",
+  "tags": []
+}

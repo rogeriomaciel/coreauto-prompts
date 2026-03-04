@@ -1,0 +1,130 @@
+{
+  "name": "COREAUTOCRM-ACTION-REGISTRAR-APROVACAO-CLIENTE",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE ordens_servico\nSET status = 'em_execucao'\nWHERE cliente_id = $1 AND status = 'aguardando_aprovacao'\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ $('Start').item.json.pessoa.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        600,
+        240
+      ],
+      "id": "update-os-aprovacao",
+      "name": "Aprovar OS",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $json.id }}",
+            "pessoa_id": "={{ $('Start').item.json.pessoa.id }}",
+            "tipo_evento": "aprovacao",
+            "descricao": "Orçamento aprovado pelo cliente via WhatsApp.",
+            "origem": "whatsapp"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        820,
+        240
+      ],
+      "id": "insert-evento-aprovacao",
+      "name": "Registrar Evento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $('Start').item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        240
+      ],
+      "id": "restore-context",
+      "name": "Retornar Contexto"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Aprovar OS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aprovar OS": {
+      "main": [
+        [
+          {
+            "node": "Registrar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Evento": {
+      "main": [
+        [
+          {
+            "node": "Retornar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

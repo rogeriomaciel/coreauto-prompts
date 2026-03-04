@@ -1,0 +1,1579 @@
+{
+  "name": "COREAUTOCRM-PROCESSAR-FILA",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "8f33024e-818e-4041-a273-60436a648acd",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1872,
+        -1040
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "lojas",
+          "mode": "list",
+          "cachedResultName": "lojas"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "whatsapp_loja",
+              "value": "={{ $json.connectedPhone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1648,
+        -1040
+      ],
+      "id": "23ff7826-33ae-4277-99af-08cec362ab06",
+      "name": "Select Oficina",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "whatsapp",
+              "value": "={{ $('Start').item.json.senderPhone }}"
+            },
+            {
+              "column": "loja_id",
+              "value": "={{ $('Select Oficina').item.json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1200,
+        -1040
+      ],
+      "id": "a4e29e67-4404-4d4f-a7db-02270714c4e1",
+      "name": "Select Pessoa",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "81af6b7f-8d33-4009-b313-4d361aca2d57",
+              "leftValue": "={{ $('Select Pessoa').item.json }}",
+              "rightValue": false,
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -912,
+        -1040
+      ],
+      "id": "0c693303-5544-4e3e-98c2-7f8fc161923f",
+      "name": "If Existe Pessoa"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Preparar Dados da Fila').item.json.tempoWaitSegundos }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -784
+      ],
+      "id": "16f737e4-54a2-441c-a588-7fdda66c161e",
+      "name": "Wait",
+      "webhookId": "53b27307-7926-4d6d-8a81-b794521f96f4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pessoas\nSET \n  fila_mensagens = COALESCE(\"fila_mensagens\"::jsonb, '{}'::jsonb) || jsonb_build_object(\n      $2::text, \n      jsonb_build_object('text', $3::text, 'audio', $4::text)\n  ),\n  \"last_message_at\" = NOW()\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [ $json.id, $json.novaChave, $('Start').item.json.incomingMessage, $('Start').item.json.incomingAudio ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        -784
+      ],
+      "id": "5d1c98ca-ce89-4de4-a802-36b1397be279",
+      "name": "Atualiza Fila",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('Preparar Dados da Fila').item.json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1200,
+        -864
+      ],
+      "id": "c3f52e4c-11d4-49da-ad84-836027a0d62c",
+      "name": "PessoaPosWait",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f7fcb05e-ef55-4ce5-9685-a93bac8265e3",
+              "leftValue": "={{ $json.passouDeSegundos }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1648,
+        -864
+      ],
+      "id": "09bd4a81-8faa-4a3a-8f6d-0c7b2726f368",
+      "name": "If Aguardou Fila"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\nconst ultimaMensagem = $json.last_message_at;\nconst segundosATestar = $('Preparar Dados da Fila').item.json.tempoWaitSegundos\n\nif (ultimaMensagem) {\n    // Converte a string ISO da imagem para milissegundos\n    const lastMessageTime = new Date(ultimaMensagem).getTime();\n    \n    // Pega o timestamp exato de agora em milissegundos\n    const now = new Date().getTime();\n    \n    // Calcula a diferença em segundos\n    const diffInSeconds = (now - lastMessageTime) / 1000;\n    \n    // Cria um campo no JSON com o resultado (true ou false)\n    $input.item.json.passouDeSegundos = diffInSeconds > segundosATestar;\n    \n    // Opcional: salva os segundos exatos no JSON para te ajudar no debug\n    $input.item.json.segundosDecorridos = diffInSeconds;\n  } else {\n    // Tratamento de erro caso o campo venha vazio\n    $input.item.json.passouDeSegundos = false; \n  }\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        -864
+      ],
+      "id": "8fc64dd8-fb9a-4e33-a947-62c856e8fb50",
+      "name": "Calcula Espera"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "var initialJson = $('Start').item.json;\nvar mensagem = \"\";\nvar audios = [];\nconst fila = $('PessoaPosWait').item.json.fila_mensagens;\n\n\n// 1. Extrai as chaves e as ordena em ordem alfabética/cronológica\nconst chavesOrdenadas = Object.keys(fila).sort();\n\n// 2. Itera sobre a fila usando a ordem correta\nfor (const key of chavesOrdenadas) {\n  const item = fila[key];\n  \n  // Concatena evitando uma quebra de linha vazia no começo da mensagem\n  if (mensagem === \"\") {\n    mensagem = item.text;\n  } else {\n    mensagem =  mensagem + \"\\n\" +item.text;\n  }\n\n  if (item.audio) {\n    audios.push(item.audio);\n  }\n}\n\ninitialJson.incomingMessage = mensagem;\ninitialJson.incomingAudio = audios;\n\nconst pessoa = $('Reseta Fila').item.json;\nconst loja = $('If Loja Existe').item.json;\n\n$input.item.json = {msg: initialJson, pessoa, loja};\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        -928
+      ],
+      "id": "666cbac2-38bb-4c81-a016-6729f38dfa27",
+      "name": "Formata Resposta"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pessoas\nSET fila_mensagens = '{}'::jsonb,\n    processando_message = true, \n    start_process_at = $2\nWHERE id = $1 \nRETURNING *\n  ",
+        "options": {
+          "queryReplacement": "=[{{  $json.id }}, {{ DateTime.now() }}]"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2096,
+        -928
+      ],
+      "id": "34c4257e-d113-428b-9454-6b3ca71a29f6",
+      "name": "Reseta Fila",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "$input.item.json.loja = $('Select Oficina').item.json;\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        -1056
+      ],
+      "id": "45c7747e-5550-4249-82d4-778b61487393",
+      "name": "Resposta Final"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dbcc64ae-4434-4863-a225-e849d551fd18",
+              "leftValue": "={{ $json.processando_message }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1872,
+        -864
+      ],
+      "id": "88b65019-3f8a-4c2d-87d2-4e07fdb08714",
+      "name": "If Processando Message"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pessoas\nSET processando_message = false\nWHERE id = $1\nRETURNING *  \n  ;",
+        "options": {
+          "queryReplacement": "={{ [ $json.id, $('PessoaPosWait').item.json.lastMessage_at ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2544,
+        -672
+      ],
+      "id": "331caef6-4d71-4b19-a449-5962e842f2e0",
+      "name": "Reseta Processamento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "77f16086-6478-4d17-b60a-9d024c731ddf",
+              "leftValue": "={{ $json.passouDeSegundos }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2320,
+        -736
+      ],
+      "id": "9507579a-3b7b-47ef-b9f6-de690288eff5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\nconst novaChave = \"msg_\" + Date.now() + \"_\" + Math.floor(Math.random() * 1000);\n$input.item.json.novaChave = novaChave;\n$input.item.json.tempoWaitSegundos = 8;\n$input.item.json.tempoProcessamentoSegundos = 30;\n\n\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -784
+      ],
+      "id": "53ea1bcd-58d0-40f0-99f3-c781a883cbac",
+      "name": "Preparar Dados da Fila"
+    },
+    {
+      "parameters": {
+        "resource": "profile-api",
+        "instanceName": "={{ $('Select Oficina').item.json.config_json.evolutionapi.instanceName }}",
+        "remoteJid": "={{ $('Start').item.json.senderPhone }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -736
+      ],
+      "id": "9359ffca-121d-4640-9881-64ebd4d8618d",
+      "name": "Buscar perfil profissional",
+      "credentials": {
+        "evolutionApi": {
+          "id": "OffPuCi6FSBEIiKv",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\nconst ultimaMensagem = $('PessoaPosWait').item.json.start_process_at;\nconst segundosATestar = $('Preparar Dados da Fila').item.json.tempoProcessamentoSegundos;\n\nif (ultimaMensagem) {\n    // Converte a string ISO da imagem para milissegundos\n    const lastMessageTime = new Date(ultimaMensagem).getTime();\n    \n    // Pega o timestamp exato de agora em milissegundos\n    const now = new Date().getTime();\n    \n    // Calcula a diferença em segundos\n    const diffInSeconds = (now - lastMessageTime) / 1000;\n    \n    // Cria um campo no JSON com o resultado (true ou false)\n    $input.item.json.passouDeSegundos = diffInSeconds > segundosATestar;\n    \n    // Opcional: salva os segundos exatos no JSON para te ajudar no debug\n    $input.item.json.segundosDecorridos = diffInSeconds;\n  } else {\n    // Tratamento de erro caso o campo venha vazio\n    $input.item.json.passouDeSegundos = false; \n  }\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        -736
+      ],
+      "id": "55a7664e-4788-4e98-8e31-ddf912ccb301",
+      "name": "Calcular Processando a mais de 30 segundos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eff0ce7d-534a-4d88-9e65-25093c6ee318",
+              "leftValue": "={{ $('Start').item.json.fromMe }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        -1056
+      ],
+      "id": "83b08007-e345-4db0-a0c8-7f9cef25e0c0",
+      "name": "If fromMe"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a69db4b2-a8b9-406f-9677-cb94e8ef2e33",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1424,
+        -1040
+      ],
+      "id": "6586c0ce-9850-4795-af34-4993993edf22",
+      "name": "If Loja Existe"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b3985bfd-cd72-4771-8f48-28c95d2acc39",
+              "leftValue": "={{ $('Start').item.json.senderGroup }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        -736
+      ],
+      "id": "d32476bb-129b-4174-8040-180818777d00",
+      "name": "If é direct"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "loja_id": "={{ $('If Loja Existe').item.json.id }}",
+            "nome": "={{ $('Start').item.json.senderName }}",
+            "whatsapp": "={{ $('Start').item.json.senderPhone }}",
+            "picture_url": "={{ $json.data.picture }}",
+            "tipo": "cliente",
+            "status": "Ativo",
+            "created_at": "={{ DateTime.now() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "loja_id",
+              "displayName": "loja_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp",
+              "displayName": "whatsapp",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "picture_url",
+              "displayName": "picture_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true,
+              "options": [
+                {
+                  "name": "cliente",
+                  "value": "cliente"
+                },
+                {
+                  "name": "atendente",
+                  "value": "atendente"
+                },
+                {
+                  "name": "mecanico",
+                  "value": "mecanico"
+                }
+              ]
+            },
+            {
+              "id": "contexto_memoria",
+              "displayName": "contexto_memoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fila_mensagens",
+              "displayName": "fila_mensagens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_message_at",
+              "displayName": "last_message_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "start_process_at",
+              "displayName": "start_process_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "processando_message",
+              "displayName": "processando_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "outputColumns": [
+            "*"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -16,
+        -736
+      ],
+      "id": "85432bfd-1129-4090-85e1-0590a7e42da4",
+      "name": "Inserir Cliente",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "groups-api",
+        "operation": "fetch-groups",
+        "instanceName": "={{ $('Select Oficina').item.json.config_json.evolutionapi.instanceName }}",
+        "searchMethod": "groupJid",
+        "groupJid": "={{ $('Start').item.json.senderPhone }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        -448
+      ],
+      "id": "9fb15311-2f09-4b1f-ada9-f5027ec38cb4",
+      "name": "Buscar grupos",
+      "credentials": {
+        "evolutionApi": {
+          "id": "OffPuCi6FSBEIiKv",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.data.subject.toUpperCase() }}",
+                    "rightValue": "ATENDIMENTO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "52442e57-0638-411f-acfc-823fac301261"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ATENDIMENTO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4146a89c-78d4-4954-bf0b-3323c9790e79",
+                    "leftValue": "={{ $json.data.subject.toUpperCase() }}",
+                    "rightValue": "MECANICO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MECANICO"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        -448
+      ],
+      "id": "9d15ea9b-113c-4bcb-8413-bbd0246fdbcc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "loja_id": "={{ $('If Loja Existe').item.json.id }}",
+            "nome": "={{ $json.data.subject }}",
+            "whatsapp": "={{ $('Start').item.json.senderPhone }}",
+            "picture_url": "={{ $json.data.pictureUrl }}",
+            "tipo": "atendente",
+            "status": "Ativo",
+            "created_at": "={{ DateTime.now() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "loja_id",
+              "displayName": "loja_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp",
+              "displayName": "whatsapp",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "picture_url",
+              "displayName": "picture_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true,
+              "options": [
+                {
+                  "name": "cliente",
+                  "value": "cliente"
+                },
+                {
+                  "name": "atendente",
+                  "value": "atendente"
+                },
+                {
+                  "name": "mecanico",
+                  "value": "mecanico"
+                }
+              ]
+            },
+            {
+              "id": "contexto_memoria",
+              "displayName": "contexto_memoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fila_mensagens",
+              "displayName": "fila_mensagens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_message_at",
+              "displayName": "last_message_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "start_process_at",
+              "displayName": "start_process_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "processando_message",
+              "displayName": "processando_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "outputColumns": [
+            "*"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -16,
+        -544
+      ],
+      "id": "a4ec8977-89b7-4656-82af-c86d236d6653",
+      "name": "Inserir Atendente",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pessoas",
+          "mode": "list",
+          "cachedResultName": "pessoas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "loja_id": "={{ $('If Loja Existe').item.json.id }}",
+            "nome": "={{ $json.data.subject }}",
+            "whatsapp": "={{ $('Start').item.json.senderPhone }}",
+            "picture_url": "={{ $json.data.pictureUrl }}",
+            "tipo": "mecanico",
+            "status": "Ativo",
+            "created_at": "={{ DateTime.now() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "loja_id",
+              "displayName": "loja_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp",
+              "displayName": "whatsapp",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "picture_url",
+              "displayName": "picture_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true,
+              "options": [
+                {
+                  "name": "cliente",
+                  "value": "cliente"
+                },
+                {
+                  "name": "atendente",
+                  "value": "atendente"
+                },
+                {
+                  "name": "mecanico",
+                  "value": "mecanico"
+                }
+              ]
+            },
+            {
+              "id": "contexto_memoria",
+              "displayName": "contexto_memoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fila_mensagens",
+              "displayName": "fila_mensagens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_message_at",
+              "displayName": "last_message_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "start_process_at",
+              "displayName": "start_process_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "processando_message",
+              "displayName": "processando_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "outputColumns": [
+            "*"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -16,
+        -352
+      ],
+      "id": "3c3c88d8-4bec-4905-ae44-8e7b04672163",
+      "name": "Inserir Mecanico",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "var initialJson = $('Start').item.json;\n\n// Se a mensagem é da oficina, não há fila para agrupar.\n// Passamos direto o texto original e as informações do banco.\nconst pessoa = $('If fromMe').item.json;\nconst loja = $('If Loja Existe').item.json;\n\n$input.item.json = {\n  msg: initialJson, \n  pessoa: pessoa, \n  loja: loja\n};\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        -1088
+      ],
+      "id": "6ac0163e-082b-4e2e-bab6-99d12f047dbe",
+      "name": "Process fromMe"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "validPayload": true,
+          "fromMe": false,
+          "senderPhone": "120363425446959353",
+          "incomingMessage": "oi",
+          "incomingAudio": "",
+          "connectedPhone": "556296425277",
+          "senderName": "GRUPO",
+          "senderGroup": "120363425446959353",
+          "messageType": "TEXT"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Select Oficina",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Oficina": {
+      "main": [
+        [
+          {
+            "node": "If Loja Existe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Pessoa": {
+      "main": [
+        [
+          {
+            "node": "If Existe Pessoa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Existe Pessoa": {
+      "main": [
+        [
+          {
+            "node": "If fromMe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If é direct",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza Fila": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "PessoaPosWait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PessoaPosWait": {
+      "main": [
+        [
+          {
+            "node": "Calcula Espera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Aguardou Fila": {
+      "main": [
+        [
+          {
+            "node": "If Processando Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Calcula Espera": {
+      "main": [
+        [
+          {
+            "node": "If Aguardou Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reseta Fila": {
+      "main": [
+        [
+          {
+            "node": "Formata Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formata Resposta": {
+      "main": [
+        [
+          {
+            "node": "Resposta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Processando Message": {
+      "main": [
+        [
+          {
+            "node": "Reseta Fila",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calcular Processando a mais de 30 segundos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reseta Processamento": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Reseta Processamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Dados da Fila": {
+      "main": [
+        [
+          {
+            "node": "Atualiza Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar perfil profissional": {
+      "main": [
+        [
+          {
+            "node": "Inserir Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Processando a mais de 30 segundos": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If fromMe": {
+      "main": [
+        [
+          {
+            "node": "Process fromMe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Dados da Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Loja Existe": {
+      "main": [
+        [
+          {
+            "node": "Select Pessoa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If é direct": {
+      "main": [
+        [
+          {
+            "node": "Buscar perfil profissional",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar grupos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserir Cliente": {
+      "main": [
+        [
+          {
+            "node": "If fromMe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar grupos": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Inserir Atendente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inserir Mecanico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserir Atendente": {
+      "main": [
+        [
+          {
+            "node": "If fromMe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserir Mecanico": {
+      "main": [
+        [
+          {
+            "node": "If fromMe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process fromMe": {
+      "main": [
+        [
+          {
+            "node": "Resposta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "e5a3bf32-41ee-48ec-93af-9907a9173732",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "n039Ub58s4PGfRyi",
+  "tags": []
+}

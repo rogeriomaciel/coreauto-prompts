@@ -1,0 +1,374 @@
+{
+  "name": "COREAUTOCRM",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "47377784-cec6-4bf7-9622-6c652d942e0e",
+              "name": "=body.text.message",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "a04269b5-935b-40f3-90f9-6082ca5b8edc",
+              "name": "body.connectedPhone",
+              "value": "556296425277",
+              "type": "string"
+            },
+            {
+              "id": "48127704-2520-4d97-a535-0bdacbd1742b",
+              "name": "body.senderName",
+              "value": "Rogério Maciel",
+              "type": "string"
+            },
+            {
+              "id": "11647297-2d64-421b-8f49-61b8316302f7",
+              "name": "body.senderGroupx",
+              "value": "120363422512872087",
+              "type": "string"
+            },
+            {
+              "id": "7cf13324-ca4d-4fa1-a978-8ec6ae870fa8",
+              "name": "body.phonex",
+              "value": "556296232227",
+              "type": "string"
+            },
+            {
+              "id": "189c1305-65f7-4eba-9ce4-6204f36383fc",
+              "name": "body.phone",
+              "value": "556296232227",
+              "type": "string"
+            },
+            {
+              "id": "1c44f1b8-520d-4c00-9f7f-cd96def5cc85",
+              "name": "body.validPayload",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "f8f98093-3c6a-4eb7-9770-a8817353a570",
+              "name": "body.messageType",
+              "value": "TEXT",
+              "type": "string"
+            },
+            {
+              "id": "4dd1a924-c7f6-4e03-88b8-f0f5394952d9",
+              "name": "body.fromMe",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        -384
+      ],
+      "id": "58f3152a-c141-4e9c-92ab-ad0e863a05ea",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "senderPhone",
+              "value": "={{$json.body.phone}}"
+            },
+            {
+              "name": "incomingMessage",
+              "value": "={{ $json.body.text.message }}"
+            },
+            {
+              "name": "incomingAudio",
+              "value": "={{ $json.body.audio.message || \"\" }}"
+            },
+            {
+              "name": "connectedPhone",
+              "value": "={{ $json.body.connectedPhone }}"
+            },
+            {
+              "name": "senderName",
+              "value": "={{ $json.body.senderName }}"
+            },
+            {
+              "name": "senderGroup",
+              "value": "={{ $json.body.senderGroup }}"
+            },
+            {
+              "name": "messageType",
+              "value": "={{ $json.body.messageType }}"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "validPayload",
+              "value": "={{ $json.body.validPayload }}"
+            },
+            {
+              "name": "fromMe",
+              "value": "={{ $json.body.fromMe || false }}"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "name": "SetInitial",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -288
+      ],
+      "id": "1f1d0b2c-bb5b-43b7-9080-259d97f4cbe5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8d573719-5219-4ba9-95fa-09d4af0450bb",
+              "leftValue": "={{ $json.validPayload }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        -288
+      ],
+      "id": "b64da6f4-fa79-40da-9bb7-73415a2dd77a",
+      "name": "If Mensagem Válida"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZGaj3FjKlv0lDgCq",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZGaj3FjKlv0lDgCq",
+          "cachedResultName": "COREAUTOCRM-SUB-FORMAT-CALL"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -528,
+        -176
+      ],
+      "name": "Call COREAUTOCRM-SUB-FORMAT-CALL",
+      "id": "fd26be40-8dd6-4558-9890-98ca2454a502"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FzQ6VVlykTtltcle",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/FzQ6VVlykTtltcle",
+          "cachedResultName": "COREAUTOCRM - PROCESS FLOW VALIDO"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        -304
+      ],
+      "name": "Call COREAUTOCRM - PROCESS FLOW VALIDO",
+      "id": "353efd60-62c1-4b0a-8b56-0b37f60540ac"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0a54f73a-2621-49c3-8cb7-09d94bba05ba",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -784,
+        -160
+      ],
+      "id": "d5974ad6-c84b-4121-912f-9c4ab774e1b5",
+      "name": "Webhook",
+      "webhookId": "0a54f73a-2621-49c3-8cb7-09d94bba05ba"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -784,
+        -400
+      ],
+      "id": "c995aa18-cad7-4def-a12d-a3d948e4c65d",
+      "name": "When chat message received",
+      "webhookId": "c6165780-5fcc-4a21-8b57-47d512c8efa3"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "n039Ub58s4PGfRyi",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/n039Ub58s4PGfRyi",
+          "cachedResultName": "COREAUTOCRM-PROCESSAR-FILA"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -304
+      ],
+      "name": "Call COREAUTOCRM-PROCESSAR-FILA",
+      "id": "e015173e-d8f5-4a51-8132-4061f5dfc8cb"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "SetInitial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SetInitial": {
+      "main": [
+        [
+          {
+            "node": "If Mensagem Válida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call COREAUTOCRM-SUB-FORMAT-CALL": {
+      "main": [
+        [
+          {
+            "node": "SetInitial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Mensagem Válida": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM-PROCESSAR-FILA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM-SUB-FORMAT-CALL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call COREAUTOCRM-PROCESSAR-FILA": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM - PROCESS FLOW VALIDO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cb0103aa-b0a1-4694-a7e8-71a45d0ac86c",
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "RVOL4OTTaTfG86-O6nioG",
+  "tags": []
+}

@@ -1,0 +1,150 @@
+{
+  "name": "COREAUTOCRM-GET-PROMPT",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select conteudo from prompts where id = $1",
+        "options": {
+          "queryReplacement": "={{ $json.loja.prompt_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1056,
+        -64
+      ],
+      "id": "a6c4c3f7-0c50-42f3-8cf6-79af15876794",
+      "name": "GET PROMPT",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\nconst dados = $('Start').item.json;\ndados.prompt = $json;\n$input.item.json = dados;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -64
+      ],
+      "id": "60362e52-8595-4c7f-b951-c2432430e8b1",
+      "name": "Formatar Resposta"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "746f1f67-56bc-4852-854f-03f387e9de08",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        848,
+        -64
+      ]
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "msg": {
+            "validPayload": true,
+            "fromMe": false,
+            "senderPhone": "556296232227",
+            "incomingMessage": "oi",
+            "connectedPhone": "556296425277",
+            "senderName": "Rogério Maciel",
+            "messageType": "TEXT",
+            "incomingAudio": []
+          },
+          "pessoa": {
+            "id": "308a4429-1b0c-4adf-9247-2f54ad5b864f",
+            "loja_id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "nome": "Rogério Maciel",
+            "whatsapp": "556296232227",
+            "picture_url": "https://pps.whatsapp.net/v/t61.24694-24/473407167_1654610852147373_8423876239081890823_n.jpg?ccb=11-4&oh=01_Q5Aa3wGItWBLPVMFsB-jg8B8fZEIlKb5Xp4aVqL63cYXYZOvxw&oe=69B11C5C&_nc_sid=5e03e0&_nc_cat=110",
+            "tipo": "cliente",
+            "contexto_memoria": {
+              "resumo_historico": "",
+              "conversas_recentes": []
+            },
+            "status": "ativo",
+            "created_at": "2026-03-01T09:32:38.386Z",
+            "fila_mensagens": {},
+            "last_message_at": "2026-03-01T09:32:39.766Z",
+            "start_process_at": "2026-03-01T09:32:47.813Z",
+            "processando_message": true
+          },
+          "loja": {
+            "id": "ba50635d-4064-4238-8fb1-7a1b2682161c",
+            "prompt_id": "cdcfa329-c519-4ff7-be7b-ff021b2692c7",
+            "nome": "Kadosh",
+            "whatsapp_loja": "556296425277",
+            "config_json": {
+              "evolutionapi": {
+                "apikey": "CxSFXk2tGLFW2WwqVR59jR",
+                "instanceName": "coreauto",
+                "EVOLUTIONAPI_URL_BASE": "https://evolution.rogeriomaciel.com.br"
+              }
+            },
+            "dashboard_settings": {
+              "theme": "light",
+              "primary_color": "#007bff",
+              "visible_charts": [
+                "faturamento",
+                "os_status",
+                "produtividade"
+              ],
+              "refresh_interval": 300
+            },
+            "created_at": "2026-02-28T19:27:47.653Z"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "GET PROMPT": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "GET PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "e854d737-02ec-414f-bbc7-2c616bdb6fde",
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "LEjNK1YohSJEkvAG",
+  "tags": []
+}

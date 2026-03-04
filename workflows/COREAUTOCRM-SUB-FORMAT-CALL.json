@@ -1,0 +1,687 @@
+{
+  "name": "COREAUTOCRM-SUB-FORMAT-CALL",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.data.messageType.toUpperCase() }}",
+                    "rightValue": "AUDIOMESSAGE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "aebfc8e2-dbd9-4078-b8e8-5c214d54c799"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AUDIO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a32a0734-06c1-43b0-a011-5a7abe46c244",
+                    "leftValue": "={{ $json.body.data.messageType.toUpperCase() }}",
+                    "rightValue": "CONVERSATION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TEXTO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ee214993-e309-4e0a-b8c2-44a551dddffb",
+                    "leftValue": "={{ $json.body.data.messageType.toUpperCase() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "OUTRO"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "461b801c-a181-4606-91d7-52729b143f7c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data.base64",
+        "options": {
+          "mimeType": "audio/mpeg"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        432,
+        -176
+      ],
+      "id": "4fa5c427-5eaa-4fa0-a4b0-dbae2789900f",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-latest"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -176
+      ],
+      "id": "d1df0d8d-1fe5-44a8-91c3-053d67594f08",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IdxbHTtnZL8GPSoW",
+          "name": "Gemini Api Key Rogerio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "$input.item.json.body.fromMe = $('Start').item.json.body.data.key.fromMe;\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        16
+      ],
+      "id": "bfaaf363-fd7d-4cf9-8413-931d8812e5f7",
+      "name": "Formatar Resposta"
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "get-media-base64",
+        "instanceName": "={{ $('CARREGAR_CONFIGS').item.json.config_json.evolutionapi.instanceName }}",
+        "messageId": "={{ $('Switch').item.json.body.data.key.id }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -176
+      ],
+      "id": "a31dcce2-2ec2-4cdd-9309-fcf57a85154e",
+      "name": "Audio em base64",
+      "credentials": {
+        "evolutionApi": {
+          "id": "OffPuCi6FSBEIiKv",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "80b37b7f-dc30-4ad8-92dd-45b4cfff4194",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -688,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT config_json FROM lojas WHERE whatsapp_loja = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.sender.split('@')[0] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -464,
+        16
+      ],
+      "id": "eb235866-5fb2-48e1-845d-06af21fd2097",
+      "name": "CARREGAR_CONFIGS",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Pega o corpo da requisição que chega da Evolution API\nconst body = $('Switch').item.json.body;\nconst data = body.data || {key: {remoteJid : body.remoteJid}};\nconst key = data.key;\n\nlet senderPhone = '';\nlet senderGroup = '';\n// Usa o pushName se existir, que é o nome do contato no WhatsApp\nlet senderName = '';\nlet validPayload = true;\n\n// A \"Auditoria\" para diferenciar grupo de privado\nif (key.remoteJid && key.remoteJid.includes('@g.us')) {\n    // CENÁRIO 1: MENSAGEM DE GRUPO\n    // O ID do grupo é o remoteJid\n    senderGroup = key.remoteJid.split('@')[0];\n    \n    // O número do participante que enviou a mensagem está no campo 'participant'\n    if (key.participant){\n      senderPhone = key.participant.split('@')[0];  \n    } else {\n      validPayload = false;\n    }\n    \n\n    senderName = data.pushName;\n\n} else {\n    // CENÁRIO 2: MENSAGEM PRIVADA\n    senderGroup = ''; // O campo de grupo fica vazio\n    \n    // O número do remetente é o próprio remoteJid\n    const idjid = '@s.whatsapp';\n      \n    let jid = key.remoteJidAlt;\n    if (jid) {\n      if (!jid.includes(idjid)) jid = key.remoteJid;  \n    } else {\n      jid = key.remoteJid;\n    }\n    \n  \n    senderPhone = jid.split('@')[0];\n\n    //o Nome do remetente \n    senderName = body.senderName || data.pushName || \"\";\n}\n\n// Retorna o objeto final e limpo para ser usado no resto do workflow\n$input.item.json = {\n  body: {\n    validPayload,\n    messageType: \"AUDIO\",\n    senderName: senderName,\n    phone: senderPhone,\n    senderGroup: senderGroup, // Campo chave para nosso Switch\n    connectedPhone: body.sender.split('@')[0], // O número da instância que recebeu\n    text: {\n      message: $json.content.parts[0].text\n    },\n    audio: {\n      message: $('Audio em base64').item.json.data.base64\n    }\n  }\n};\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -176
+      ],
+      "id": "248b1da0-e20e-4070-9621-d44ce377ce8c",
+      "name": "Formar Dados"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Pega o corpo da requisição que chega da Evolution API\nconst body = $json.body;\nconst data = body.data || {key: {remoteJid : body.remoteJid}};\nconst key = data.key;\n\nlet senderPhone = '';\nlet senderGroup = '';\n// Usa o pushName se existir, que é o nome do contato no WhatsApp\nlet senderName = '';\nlet validPayload = true;\n\n// A \"Auditoria\" para diferenciar grupo de privado\nif (key.remoteJid && key.remoteJid.includes('@g.us')) {\n    // CENÁRIO 1: MENSAGEM DE GRUPO\n    // O ID do grupo é o remoteJid\n    senderGroup = key.remoteJid.split('@')[0];\n    \n    // O número do participante que enviou a mensagem está no campo 'participant'\n    if (key.participantAlt){\n      senderPhone = key.participantAlt.split('@')[0];  \n    } else if (key.participant) {\n      senderPhone = key.participant.split('@')[0];  \n      \n    } else {\n      validPayload = false;\n    }\n    \n\n    senderName = data.pushName;\n\n} else {\n    // CENÁRIO 2: MENSAGEM PRIVADA\n    senderGroup = ''; // O campo de grupo fica vazio\n    \n    // O número do remetente é o próprio remoteJid\n    const idjid = '@';\n      \n    let jid = key.remoteJidAlt || key.remoteJid;\n    if (!jid.includes(idjid)) jid = key.remoteJid;\n  \n    senderPhone = jid.split('@')[0];\n\n    //o Nome do remetente \n    senderName = body.senderName || data.pushName || \"\";\n}\n\n// Retorna o objeto final e limpo para ser usado no resto do workflow\n$input.item.json = {\n  body: {\n    validPayload,\n    messageType: \"TEXT\",\n    senderName: senderName,\n    phone: senderPhone,\n    senderGroup: senderGroup, // Campo chave para nosso Switch\n    connectedPhone: body.sender.split('@')[0], // O número da instância que recebeu\n    text: {\n      message: data.message.conversation\n    },\n    audio: {\n      message: \"\"\n    }\n  }\n};\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        16
+      ],
+      "id": "32f1a676-e3be-41f2-b630-56698c75ace8",
+      "name": "Formatar Dados Texto"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a352970a-43e6-4c9c-9c0b-0312d4c4f258",
+              "name": "validPayload",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        208
+      ],
+      "id": "c828ae56-434b-40b2-a89f-12f3268483d1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\n$input.item.json = $('Start').item.json;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        16
+      ],
+      "id": "7b6e5895-33d0-4391-a767-937e98e60b5e",
+      "name": "Reset Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "55b42ab2-d110-497b-a239-1ad53b0de0ee",
+              "leftValue": "={{ $json.body.senderGroup }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1312,
+        16
+      ],
+      "id": "682fe99d-21b5-40c2-877f-43e627110fb6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n\nlet resp = $('Formatar Resposta').item.json;\n\nresp.body.phone = resp.body.senderGroup;\nresp.body.senderName = 'GRUPO';\n\n$input.item.json = resp;\n\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        128
+      ],
+      "id": "64635e14-f65e-485c-92ec-c77cb5a62288",
+      "name": "Resposta Grupo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        0
+      ],
+      "id": "e4f06ba5-b1d3-4c29-ad0f-49769ff5c442",
+      "name": "Resposta Final"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "headers": {
+            "host": "logic.runoncore.com",
+            "x-real-ip": "52.45.236.54",
+            "x-forward-for": "52.45.236.54",
+            "connection": "upgrade",
+            "content-length": "1804",
+            "accept": "application/json, text/plain, */*",
+            "content-type": "application/json",
+            "user-agent": "axios/1.13.2",
+            "accept-encoding": "gzip, compress, deflate, br"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "messages.upsert",
+            "instance": "coreauto",
+            "data": {
+              "key": {
+                "remoteJid": "120363425446959353@g.us",
+                "fromMe": false,
+                "id": "3EB0B53FCCC01444BF43F0",
+                "participant": "89000379461669@lid",
+                "participantAlt": "556296232227@s.whatsapp.net",
+                "addressingMode": "lid"
+              },
+              "pushName": "Rogério Maciel",
+              "status": "DELIVERY_ACK",
+              "message": {
+                "senderKeyDistributionMessage": {
+                  "groupId": "120363425446959353@g.us",
+                  "axolotlSenderKeyDistributionMessage": {
+                    "0": 51,
+                    "1": 8,
+                    "2": 240,
+                    "3": 211,
+                    "4": 130,
+                    "5": 185,
+                    "6": 7,
+                    "7": 16,
+                    "8": 0,
+                    "9": 26,
+                    "10": 32,
+                    "11": 11,
+                    "12": 221,
+                    "13": 2,
+                    "14": 235,
+                    "15": 30,
+                    "16": 254,
+                    "17": 99,
+                    "18": 15,
+                    "19": 22,
+                    "20": 134,
+                    "21": 186,
+                    "22": 144,
+                    "23": 143,
+                    "24": 11,
+                    "25": 22,
+                    "26": 119,
+                    "27": 31,
+                    "28": 252,
+                    "29": 163,
+                    "30": 17,
+                    "31": 53,
+                    "32": 58,
+                    "33": 31,
+                    "34": 70,
+                    "35": 56,
+                    "36": 70,
+                    "37": 147,
+                    "38": 67,
+                    "39": 136,
+                    "40": 239,
+                    "41": 186,
+                    "42": 135,
+                    "43": 34,
+                    "44": 33,
+                    "45": 5,
+                    "46": 254,
+                    "47": 237,
+                    "48": 105,
+                    "49": 163,
+                    "50": 191,
+                    "51": 67,
+                    "52": 77,
+                    "53": 43,
+                    "54": 66,
+                    "55": 169,
+                    "56": 37,
+                    "57": 110,
+                    "58": 66,
+                    "59": 147,
+                    "60": 155,
+                    "61": 170,
+                    "62": 153,
+                    "63": 166,
+                    "64": 129,
+                    "65": 248,
+                    "66": 106,
+                    "67": 24,
+                    "68": 3,
+                    "69": 110,
+                    "70": 115,
+                    "71": 182,
+                    "72": 51,
+                    "73": 78,
+                    "74": 240,
+                    "75": 126,
+                    "76": 242,
+                    "77": 125
+                  }
+                },
+                "messageContextInfo": {
+                  "threadId": [],
+                  "messageSecret": {
+                    "0": 74,
+                    "1": 47,
+                    "2": 216,
+                    "3": 195,
+                    "4": 224,
+                    "5": 88,
+                    "6": 221,
+                    "7": 163,
+                    "8": 111,
+                    "9": 57,
+                    "10": 49,
+                    "11": 37,
+                    "12": 230,
+                    "13": 142,
+                    "14": 33,
+                    "15": 90,
+                    "16": 140,
+                    "17": 156,
+                    "18": 38,
+                    "19": 134,
+                    "20": 108,
+                    "21": 51,
+                    "22": 4,
+                    "23": 140,
+                    "24": 75,
+                    "25": 14,
+                    "26": 149,
+                    "27": 54,
+                    "28": 152,
+                    "29": 162,
+                    "30": 117,
+                    "31": 119
+                  }
+                },
+                "conversation": "oi"
+              },
+              "messageType": "conversation",
+              "messageTimestamp": 1772476958,
+              "instanceId": "56d361f4-7909-4d98-88d7-69ad75985f6c",
+              "source": "web"
+            },
+            "destination": "https://logic.runoncore.com/app/0a54f73a-2621-49c3-8cb7-09d94bba05ba",
+            "date_time": "2026-03-02T15:42:38.596Z",
+            "sender": "556296425277@s.whatsapp.net",
+            "server_url": "http://evolution.rogeriomaciel.com.br",
+            "apikey": "423C9050F5C6-4BA4-BE47-724F37344D73"
+          },
+          "webhookUrl": "https://logic.runoncore.com/app/0a54f73a-2621-49c3-8cb7-09d94bba05ba",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Audio em base64",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Dados Texto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Formar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio em base64": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "CARREGAR_CONFIGS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CARREGAR_CONFIGS": {
+      "main": [
+        [
+          {
+            "node": "Reset Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formar Dados": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Dados Texto": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset Input": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Resposta Final",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta Grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta Grupo": {
+      "main": [
+        [
+          {
+            "node": "Resposta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "3ef73735-c176-413f-8294-2bf11d3a29f0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "ZGaj3FjKlv0lDgCq",
+  "tags": []
+}

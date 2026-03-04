@@ -1,0 +1,45 @@
+{
+  "name": "COREAUTOCRM-ACTION-SELECIONAR-OS-TRABALHO",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Atualiza o active_os_id no contexto de memória para a próxima interação\nconst activeOsId = $json.respostaIA.actionData.os_id_selecionada;\n\nif (activeOsId) {\n  $json.pessoa.contexto_memoria.actionDataContext.active_os_id = activeOsId;\n}\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        240
+      ],
+      "id": "update-context",
+      "name": "Set Active OS ID"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Set Active OS ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
