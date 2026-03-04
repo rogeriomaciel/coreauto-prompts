@@ -145,7 +145,6 @@ CREATE TABLE os_eventos (
     descricao TEXT,
     audio_base64 TEXT, -- Prova de verdade absoluta (voz original)
     origem origem_evento DEFAULT 'whatsapp',
-    mensagem_id VARCHAR(255),
     contexto_json JSONB DEFAULT '{}',
     data_registro TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -157,6 +156,9 @@ CREATE TABLE os_eventos (
 CREATE INDEX idx_pessoas_whatsapp ON pessoas(whatsapp);
 CREATE INDEX idx_kb_loja_categoria ON knowledge_base(loja_id, categoria);
 CREATE INDEX idx_os_eventos_ordem ON os_eventos(os_id, data_registro DESC);
+-- Garante que só pode existir uma 'pre_os' por veículo.
+CREATE UNIQUE INDEX idx_unique_pre_os_por_veiculo ON ordens_servico (veiculo_id) WHERE status = 'pre_os';
+
 
 insert into prompts ("categoria", "conteudo", "id", "file_name") values ('Oficina', 'default', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7', 'prompt_mestre_oficina.md');
-insert into lojas ("config_json", "created_at", "nome", "whatsapp_loja", "prompt_id") values ('{"assistente": {"nome": "Kadu", "pronomes": "Ele/Dele"}, "evolutionapi":{"apikey":"CxSFXk2tGLFW2WwqVR59jR","instanceName":"coreauto","EVOLUTIONAPI_URL_BASE":"https://evolution.rogeriomaciel.com.br"}}', '2026-02-28 19:27:47.653468+00', 'Kadosh', '556296425277', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7');
+insert into lojas ("config_json", "created_at", "nome", "whatsapp_loja", "prompt_id") values ('{"assistente": {"nome": "Kadu", "pronomes": "Ela/Dela", "nome_completo": "Kamila Eduarda", "estado_civil": "solteira", "data_nascimento": "04-02-2005"}, "evolutionapi":{"apikey":"CxSFXk2tGLFW2WwqVR59jR","instanceName":"coreauto","EVOLUTIONAPI_URL_BASE":"https://evolution.rogeriomaciel.com.br"}}', '2026-02-28 19:27:47.653468+00', 'Kadosh', '556296425277', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7');
