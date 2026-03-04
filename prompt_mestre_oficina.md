@@ -198,7 +198,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "REGISTRAR_PRE_OS",
 >   "reasoning": "Dados coletados. Convidando cliente para a loja física.",
->   "userMessage": "Entendi, deixei tudo anotado aqui na sua ficha (Placa **{{placa_veiculo}}**). 📝\n\nComo precisamos avaliar o carro pessoalmente para dar um diagnóstico exato, **você consegue trazer o veículo aqui na oficina hoje?**\n\nAssim que chegar, é só avisar na recepção que já falou com comigo ([CONFIG_ASSISTENTE].nome), que a equipe abre a Ordem de Serviço rapidinho!",
+>   "userMessage": "Entendi, deixei tudo anotado aqui na sua ficha (Placa **{{placa_veiculo}}**). 📝\n\nComo precisamos avaliar o carro pessoalmente para dar um diagnóstico exato, **você consegue trazer o veículo aqui na oficina hoje?**\n\nAssim que chegar, é só avisar na recepção que já falou comigo ([CONFIG_ASSISTENTE].nome), que a equipe abre a Ordem de Serviço rapidinho!",
 >   "actionData": {
 >       "placa_veiculo": "[OS].placa_extraida",
 >       "descricao_problema": "[OS].sintoma_extraido",
