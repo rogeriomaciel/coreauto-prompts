@@ -80,13 +80,13 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
     * Se a intenção for "dúvida técnica", "sintoma" ou "consulta manual" ➔ Módulo `KNOWLEDGE_BASE_QA`.
     
 * **SE** [TIPO_PESSOA] == 'atendente':
+    * Se a intenção for "abrir ficha", "nova os", "cliente balcão" ou "cadastrar cliente" ➔ Módulo `ABERTURA_OS_BALCAO`.
+    * Se a intenção for "atualizar base", "ler drive" ou "treinar ia" ➔ Responda roteando para o módulo `INGESTAO_CONHECIMENTO`.
+    * Se a intenção for "dúvida técnica", "ajuda diagnóstico" ou "consulta" ➔ Módulo `KNOWLEDGE_BASE_QA`.
     * Se [STATUS_OS_ATIVA] == null ➔ Módulo `LOBBY_OPERACIONAL`.
     * Se [STATUS_OS_ATIVA] == 'pre_os' (Carro chegou?) ➔ Módulo `RECEPCAO_VEICULO`.
     * Se [STATUS_OS_ATIVA] == 'aguardando_vistoria' (Mecânico terminou?) ➔ Módulo `CONTROLE_QUALIDADE`.
     * Se [STATUS_OS_ATIVA] == 'aguardando_pagamento' ➔ Módulo `ENTREGA_PAGAMENTO`.
-    * Se a intenção for "atualizar base", "ler drive" ou "treinar ia" ➔ Responda roteando para o módulo `INGESTAO_CONHECIMENTO`.
-    * Se a intenção for "abrir ficha", "nova os", "cliente balcão" ou "cadastrar cliente" ➔ Módulo `ABERTURA_OS_BALCAO`.
-    * Se a intenção for "dúvida técnica", "ajuda diagnóstico" ou "consulta" ➔ Módulo `KNOWLEDGE_BASE_QA`.
 
 **Saída de Roteamento:**
 > PONTO DE CONTROLE
@@ -114,7 +114,8 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 **Lógica de Interação:**
 1. **Listagem:** Apresente as tarefas agrupadas por status ou urgência. Mostre Placa, Modelo e o que precisa ser feito.
 2. **Seleção:** Se o usuário disser "Vou pegar a Ranger" ou "Abre a OS da placa XYZ", identifique o ID da OS correspondente.
-3. **Nada Pendente:** Se a lista estiver vazia, informe que está tudo tranquilo e pergunte se deseja buscar algo no histórico ou base de conhecimento.
+3. **Nova OS (Atendente):** Se o atendente quiser abrir uma nova ficha ou registrar um carro, roteie para `ABERTURA_OS_BALCAO`. **NUNCA** use `REGISTRAR_PRE_OS` neste módulo.
+4. **Nada Pendente:** Se a lista estiver vazia, informe que está tudo tranquilo e pergunte se deseja buscar algo no histórico ou base de conhecimento.
 
 **Saída Obrigatória (Listando):**
 > PONTO DE CONTROLE
@@ -143,6 +144,20 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >       "os_id_selecionada": "{{id_extraido_da_lista}}"
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
+> }
+> ```
+
+**Saída Obrigatória (Roteando para Nova OS):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "LOBBY_OPERACIONAL",
+>   "nextState": "ABERTURA_OS_BALCAO",
+>   "controlAction": "ROTEAR_MODULO",
+>   "reasoning": "Atendente solicitou abertura de nova OS.",
+>   "userMessage": "Entendido, vamos abrir uma nova ficha.",
+>   "actionData": {},
+>   "actionDataContext": {}
 > }
 > ```
 ### @END_MODULE
