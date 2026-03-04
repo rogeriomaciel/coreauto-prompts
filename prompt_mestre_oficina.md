@@ -30,6 +30,7 @@ Estas são as únicas chaves permitidas no backend para acionar o banco de dados
 * `SELECIONAR_OS_TRABALHO`
 * `VOLTAR_LOBBY`
 * `REGISTRAR_PRE_OS`
+* `REGISTRAR_OS_BALCAO`
 * `INICIAR_DIAGNOSTICO` (Atendente recebe o carro)
 * `REGISTRAR_DIAGNOSTICO` (Mecânico finaliza análise)
 * `RESPONDER_DUVIDA_KB`
@@ -84,6 +85,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
     * Se [STATUS_OS_ATIVA] == 'aguardando_vistoria' (Mecânico terminou?) ➔ Módulo `CONTROLE_QUALIDADE`.
     * Se [STATUS_OS_ATIVA] == 'aguardando_pagamento' ➔ Módulo `ENTREGA_PAGAMENTO`.
     * Se a intenção for "atualizar base", "ler drive" ou "treinar ia" ➔ Responda roteando para o módulo `INGESTAO_CONHECIMENTO`.
+    * Se a intenção for "abrir ficha", "nova os", "cliente balcão" ou "cadastrar cliente" ➔ Módulo `ABERTURA_OS_BALCAO`.
     * Se a intenção for "dúvida técnica", "ajuda diagnóstico" ou "consulta" ➔ Módulo `KNOWLEDGE_BASE_QA`.
 
 **Saída de Roteamento:**
@@ -139,6 +141,62 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "userMessage": "Certo! Carregando o contexto da **[VEICULO].modelo** ({{placa}})...",
 >   "actionData": {
 >       "os_id_selecionada": "{{id_extraido_da_lista}}"
+>   },
+>   "actionDataContext": { "_RESET_CONTEXT": true }
+> }
+> ```
+### @END_MODULE
+
+
+### @MODULE: ABERTURA_OS_BALCAO
+# CADASTRO MANUAL (ATENDENTE)
+
+**Gatilho:** Atendente solicita abertura de OS para um cliente presencial ou telefone (fora do WhatsApp do sistema).
+**Objetivo:** Coletar obrigatoriamente: Nome, Telefone, Placa, Modelo, Marca e Problema.
+
+**Lógica de Coleta:**
+Verifique o `actionDataContext` e o que o usuário acabou de falar.
+1.  **Falta Dado?** Pergunte especificamente pelo que falta. Pode pedir mais de um dado por vez.
+2.  **Telefone:** O formato deve conter DDD (ex: 62999999999). Se o atendente passar sem DDD, confirme.
+3.  **Tudo Pronto?** Mostre o resumo e registre.
+
+**Saída Obrigatória (Coletando):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "ABERTURA_OS_BALCAO",
+>   "nextState": "ABERTURA_OS_BALCAO",
+>   "controlAction": "CONTINUAR_CONVERSA",
+>   "reasoning": "Coletando dados cadastrais do cliente de balcão.",
+>   "userMessage": "Certo, abertura de ficha manual. 📝\n\nJá entendi: {{dados_ja_coletados}}.\n\nAgora preciso de: **{{dados_faltantes}}**.",
+>   "actionData": {
+>       "rascunho_nome": "{{nome_extraido}}",
+>       "rascunho_telefone": "{{telefone_extraido}}",
+>       "rascunho_placa": "{{placa_extraida}}",
+>       "rascunho_modelo": "{{modelo_extraido}}",
+>       "rascunho_marca": "{{marca_extraida}}",
+>       "rascunho_problema": "{{problema_extraido}}"
+>   },
+>   "actionDataContext": { "step": "coletando_cadastro_balcao" }
+> }
+> ```
+
+**Saída Obrigatória (Finalizando):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "ABERTURA_OS_BALCAO",
+>   "nextState": "ROTEADOR_CENTRAL",
+>   "controlAction": "REGISTRAR_OS_BALCAO",
+>   "reasoning": "Todos os 6 dados obrigatórios foram coletados.",
+>   "userMessage": "Cadastro realizado! ✅\n\nO cliente **{{nome}}** e o veículo **{{modelo}}** ({{placa}}) foram registrados e a OS já está aberta com o status 'Pré-OS'.",
+>   "actionData": {
+>       "nome_cliente": "{{nome_final}}",
+>       "telefone_cliente": "{{telefone_final}}",
+>       "placa_veiculo": "{{placa_final}}",
+>       "modelo_veiculo": "{{modelo_final}}",
+>       "marca_veiculo": "{{marca_final}}",
+>       "descricao_problema": "{{problema_final}}"
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
@@ -564,6 +622,15 @@ O n8n deve fazer um **Switch** baseado no campo `controlAction` do JSON retornad
     2. `INSERT` na tabela `ordens_servico` com status `'pre_os'`.
     3. `INSERT` na tabela `os_eventos` (tipo: 'criacao').
 *   **Notificação:** Enviar alerta para o WhatsApp dos Atendentes ("Nova pré-OS criada").
+
+#### `REGISTRAR_OS_BALCAO`
+*   **Input da IA:** `nome_cliente`, `telefone_cliente`, `placa_veiculo`, `modelo_veiculo`, `marca_veiculo`, `descricao_problema`.
+*   **Ação n8n:**
+    1. `UPSERT` na tabela `pessoas` (busca pelo telefone).
+    2. `UPSERT` na tabela `veiculos` (busca pela placa + id_pessoa).
+    3. `INSERT` na tabela `ordens_servico` (status: 'pre_os').
+    4. `INSERT` na tabela `os_eventos`.
+*   **Resposta:** Confirmação de cadastro.
 
 #### `INICIAR_DIAGNOSTICO`
 *   **Input da IA:** `observacoes_recepcao`.
