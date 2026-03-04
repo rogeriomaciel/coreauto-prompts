@@ -34,7 +34,7 @@ CREATE TABLE lojas (
     prompt_id UUID REFERENCES prompts(id) ,
     nome VARCHAR(255) NOT NULL, 
     whatsapp_loja VARCHAR(20) UNIQUE NOT NULL, -- Chave de contexto para a CORA
-    config_json JSONB NOT NULL DEFAULT '{}', -- Regras de negócio, termos e horários
+    config_json JSONB NOT NULL DEFAULT '{"assistente": {"nome":"Cora", "pronomes": "Ela/Dela"}, "evolutionapi":{"apikey":"valorKeyAPI","instanceName":"nomeInstance","EVOLUTIONAPI_URL_BASE":"https://urlevolution.com.br"}}', -- Regras de negócio, termos e horários
     
     -- Configurações de UI/UX do Dashboard
     dashboard_settings JSONB NOT NULL DEFAULT '{
@@ -159,4 +159,4 @@ CREATE INDEX idx_kb_loja_categoria ON knowledge_base(loja_id, categoria);
 CREATE INDEX idx_os_eventos_ordem ON os_eventos(os_id, data_registro DESC);
 
 insert into prompts ("categoria", "conteudo", "id", "file_name") values ('Oficina', 'default', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7', 'prompt_mestre_oficina.md');
-insert into lojas ("config_json", "created_at", "nome", "whatsapp_loja", "prompt_id") values ('{"evolutionapi":{"apikey":"CxSFXk2tGLFW2WwqVR59jR","instanceName":"coreauto","EVOLUTIONAPI_URL_BASE":"https://evolution.rogeriomaciel.com.br"}}', '2026-02-28 19:27:47.653468+00', 'Kadosh', '556296425277', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7');
+insert into lojas ("config_json", "created_at", "nome", "whatsapp_loja", "prompt_id") values ('{"assistente": {"nome": "Kadu", "pronomes": "Ele/Dele"}, "evolutionapi":{"apikey":"CxSFXk2tGLFW2WwqVR59jR","instanceName":"coreauto","EVOLUTIONAPI_URL_BASE":"https://evolution.rogeriomaciel.com.br"}}', '2026-02-28 19:27:47.653468+00', 'Kadosh', '556296425277', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7');
