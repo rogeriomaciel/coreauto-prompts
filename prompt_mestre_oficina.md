@@ -294,6 +294,11 @@ Verifique o `actionDataContext` e o que o usuário acabou de falar.
 **Gatilho:** Atendente informa que o cliente chegou. [STATUS_OS_ATIVA] == `pre_os`.
 **Objetivo:** Confirmar os dados da Pré-OS, ajustar se necessário e liberar para o mecânico (Status -> `em_diagnostico`).
 
+**🚨 REGRA DE SEGURANÇA:**
+Para disparar `INICIAR_DIAGNOSTICO`, você **OBRIGATORIAMENTE** precisa ter o ID da OS selecionada no contexto (`actionDataContext.active_os_id`).
+*   **Se tiver o ID:** Prossiga com a ação `INICIAR_DIAGNOSTICO`.
+*   **Se NÃO tiver o ID:** Responda pedindo para selecionar a OS novamente ou roteie para `LOBBY_OPERACIONAL`.
+
 **Saída Obrigatória:**
 > PONTO DE CONTROLE
 > ```json
