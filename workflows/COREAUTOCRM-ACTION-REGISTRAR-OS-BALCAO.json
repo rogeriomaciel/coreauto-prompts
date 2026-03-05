@@ -69,7 +69,8 @@
           "id": "77y5s6MheuLZSCpd",
           "name": "COREAUTOCRM"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -112,7 +113,8 @@
           "id": "77y5s6MheuLZSCpd",
           "name": "COREAUTOCRM"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -208,7 +210,8 @@
           "id": "77y5s6MheuLZSCpd",
           "name": "COREAUTOCRM"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -249,21 +252,98 @@
           "id": "77y5s6MheuLZSCpd",
           "name": "COREAUTOCRM"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Retorna o contexto original para a CORA continuar\nconst originalItem = $('Start').item.json;\n\n// Tenta injetar o ID da nova OS\ntry {\n    const osNode = $('Criar OS').last();\n    if (osNode && osNode.json && osNode.json.id) {\n        originalItem.os_criada_id = osNode.json.id;\n    }\n} catch (e) {}\n\n$input.item.json = originalItem;\nreturn $input.item;"
+        "jsCode": "const inputItem = $input.item.json;\n\n// CENÁRIO 1: Fluxo de Erro (Vindo do Process Error)\nif (inputItem.error) {\n    return $input.item;\n}\n\n// CENÁRIO 2: Fluxo de Sucesso\nconst originalItem = $('Validate & Sanitize').item.json;\n\n// Tenta injetar o ID da OS criada (se existir)\ntry {\n    const osNode = $('Criar OS').last();\n    if (osNode && osNode.json && osNode.json.id) {\n        originalItem.os_criada_id = osNode.json.id;\n        \n        if (originalItem.respostaIA && originalItem.respostaIA.actionData) {\n             originalItem.respostaIA.actionData.os_id_gerado = osNode.json.id;\n        }\n    }\n} catch (e) {}\n\nreturn { json: originalItem };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        740,
+        1140,
         240
       ],
       "id": "return-context",
       "name": "Retornar Contexto"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 1. Recupera o contexto original seguro\nconst originalContext = $('Validate & Sanitize').item.json;\n\n// 2. Recupera o erro\nconst errorDetails = $input.item.json; \n\n// 3. Cria resposta de erro\nconst errorResponse = {\n    ...originalContext, \n    error: true,\n    errorDetails: errorDetails\n};\n\n// 4. Sobrescreve mensagem para a IA\nif (errorResponse.respostaIA) {\n    errorResponse.respostaIA.userMessage = \"⚠️ *Erro Técnico*\\n\\nOcorreu uma falha ao registrar a OS de Balcão. Verifique os dados e tente novamente.\";\n    errorResponse.respostaIA.actionData = {};\n}\n\nreturn { json: errorResponse };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        500
+      ],
+      "id": "process-error",
+      "name": "Process Error"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg-client",
+              "name": "clientMessage",
+              "value": "=Olá {{ $('Upsert Pessoa').item.json.nome }}! 👋\n\nSeu cadastro na {{ $('Validate & Sanitize').item.json.loja.nome }} foi realizado com sucesso.\n\nAcabamos de abrir a Ordem de Serviço para o seu veículo *{{ $('Upsert Veiculo').item.json.modelo }}* (Placa: {{ $('Upsert Veiculo').item.json.placa }}).\n\nQualquer dúvida, você pode falar comigo por aqui!",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        100
+      ],
+      "id": "prepare-client-msg",
+      "name": "Prepare Client Msg"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Validate & Sanitize').item.json.loja.config_json.evolutionapi.instanceName }}",
+        "remoteJid": "={{ $('Upsert Pessoa').item.json.whatsapp }}",
+        "messageText": "={{ $json.clientMessage }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        720,
+        100
+      ],
+      "id": "send-whatsapp-client",
+      "name": "Enviar WhatsApp Cliente",
+      "credentials": {
+        "evolutionApi": {
+          "id": "OffPuCi6FSBEIiKv",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        240
+      ],
+      "id": "process-success",
+      "name": "Process Success"
     }
   ],
   "connections": {
@@ -297,6 +377,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Process Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -305,6 +392,13 @@
         [
           {
             "node": "Criar OS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Error",
             "type": "main",
             "index": 0
           }
@@ -337,6 +431,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Process Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -348,10 +449,64 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Process Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Registrar Evento": {
+      "main": [
+        [
+          {
+            "node": "Prepare Client Msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Client Msg": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp Cliente": {
+      "main": [
+        [
+          {
+            "node": "Process Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Success": {
       "main": [
         [
           {
@@ -361,6 +516,17 @@
           }
         ]
       ]
-    }
+    },
+    "Process Error": {
+      "main": [
+        [
+          {
+            "node": "Retornar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    } 
   }
 }
