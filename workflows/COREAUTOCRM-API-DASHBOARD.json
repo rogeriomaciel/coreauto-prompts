@@ -1,0 +1,236 @@
+{
+  "name": "COREAUTOCRM-API-DASHBOARD",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "app/panel",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "webhook-trigger",
+      "name": "Webhook Dashboard"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "GET_DASHBOARD_KPI",
+              "outputKey": "kpi"
+            },
+            {
+              "value2": "GET_OS_LIST",
+              "outputKey": "list_os"
+            },
+            {
+              "value2": "GET_OS_DETAILS",
+              "outputKey": "os_details"
+            },
+            {
+              "value2": "GET_TEAM",
+              "outputKey": "team"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "switch-action",
+      "name": "Roteador de Ação"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COUNT(*) FILTER (WHERE status IN ('triagem', 'pre_os')) as em_triagem,\n  COUNT(*) FILTER (WHERE status = 'aguardando_aprovacao_cliente') as aguardando_aprovacao,\n  COUNT(*) FILTER (WHERE status = 'em_execucao') as em_execucao,\n  COALESCE(SUM(valor_total) FILTER (WHERE status IN ('em_execucao', 'finalizado', 'aguardando_pagamento')), 0) as faturamento_estimado\nFROM ordens_servico;"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -200
+      ],
+      "id": "query-kpi",
+      "name": "Query KPIs",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  os.id,\n  os.status,\n  os.data_entrada,\n  v.placa,\n  v.modelo,\n  v.marca,\n  p.nome as cliente_nome,\n  os.valor_total\nFROM ordens_servico os\nJOIN veiculos v ON os.veiculo_id = v.id\nJOIN pessoas p ON os.cliente_id = p.id\nORDER BY os.data_entrada DESC\nLIMIT 50;"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        500,
+        0
+      ],
+      "id": "query-list-os",
+      "name": "Query Lista OS",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  os.*,\n  v.placa, v.modelo, v.marca, v.km_atual, v.ano,\n  p.nome as cliente_nome, p.whatsapp as cliente_whatsapp\nFROM ordens_servico os\nJOIN veiculos v ON os.veiculo_id = v.id\nJOIN pessoas p ON os.cliente_id = p.id\nWHERE os.id = '{{ $json.body.osId }}'::uuid;"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        500,
+        200
+      ],
+      "id": "query-os-header",
+      "name": "Query OS Header",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  evt.id,\n  evt.tipo_evento,\n  evt.descricao,\n  evt.data_registro,\n  evt.origem,\n  evt.audio_base64,\n  p.nome as autor,\n  p.tipo as autor_tipo\nFROM os_eventos evt\nJOIN pessoas p ON evt.pessoa_id = p.id\nWHERE evt.os_id = '{{ $('webhook-trigger').item.json.body.osId }}'::uuid\nORDER BY evt.data_registro ASC;"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        700,
+        200
+      ],
+      "id": "query-os-timeline",
+      "name": "Query OS Timeline",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const header = $('Query OS Header').first().json;\nconst timeline = $input.all().map(item => item.json);\n\nreturn {\n  json: {\n    ...header,\n    timeline: timeline\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ],
+      "id": "merge-os-details",
+      "name": "Merge Details"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, nome, tipo, status, whatsapp \nFROM pessoas \nWHERE tipo IN ('mecanico', 'atendente') \nAND status = 'ativo';"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        500,
+        400
+      ],
+      "id": "query-team",
+      "name": "Query Team",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Roteador de Ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador de Ação": {
+      "main": [
+        [
+          {
+            "node": "Query KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Lista OS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query OS Header",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query OS Header": {
+      "main": [
+        [
+          {
+            "node": "Query OS Timeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query OS Timeline": {
+      "main": [
+        [
+          {
+            "node": "Merge Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
