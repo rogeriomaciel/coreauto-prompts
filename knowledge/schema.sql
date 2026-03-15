@@ -96,6 +96,7 @@ CREATE TABLE usuarios (
     loja_id UUID NOT NULL REFERENCES lojas(id) ON DELETE CASCADE,
     pessoa_id UUID UNIQUE REFERENCES pessoas(id) ON DELETE SET NULL, -- Vincula o login ao perfil operacional
     nome VARCHAR(255) NOT NULL,
+    whatsapp varchar(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT, -- Nulo se usar apenas login social
     google_id VARCHAR(255) UNIQUE, -- ID para Login com Google
@@ -125,6 +126,7 @@ CREATE TABLE ordens_servico (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     veiculo_id UUID NOT NULL REFERENCES veiculos(id),
     cliente_id UUID NOT NULL REFERENCES pessoas(id),
+    consultor_id UUID REFERENCES pessoas(id),
     status VARCHAR(50) NOT NULL DEFAULT 'triagem',
     descricao_problema TEXT,
     orcamento_json JSONB DEFAULT '[]',
