@@ -67,7 +67,7 @@ CREATE TABLE knowledge_base (
 -- 2. GESTÃO DE ACESSO E PERSONAGENS
 -- ==========================================
 
-CREATE TYPE tipo_pessoa AS ENUM ('cliente', 'atendente', 'mecanico');
+CREATE TYPE tipo_pessoa AS ENUM ('cliente', 'consultor', 'mecanico');
 
 CREATE TABLE pessoas (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
