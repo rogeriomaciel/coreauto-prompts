@@ -193,7 +193,7 @@ CREATE INDEX idx_pessoas_whatsapp ON pessoas(whatsapp);
 CREATE INDEX idx_kb_loja_categoria ON knowledge_base(loja_id, categoria);
 CREATE INDEX idx_os_eventos_ordem ON os_eventos(os_id, data_registro DESC);
 -- Garante que só pode existir uma 'pre_os' por veículo.
-CREATE UNIQUE INDEX idx_unique_pre_os_por_veiculo ON ordens_servico (veiculo_id) WHERE status = 'pre_os';
+CREATE UNIQUE INDEX idx_unique_pre_os_por_veiculo ON ordens_servico (veiculo_id) WHERE status in ('pre_os', 'aguardando_agenda') ;
 
 
 insert into prompts ("categoria", "conteudo", "id", "file_name") values ('Oficina', 'default', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7', 'prompt_mestre_oficina.md');
