@@ -11,6 +11,21 @@ drop type if exists tipo_evento_os;
 drop type if exists origem_evento;
 
 
+-- Tabela de Configuração Global 
+CREATE TABLE
+  config (
+    config_id integer NOT NULL,
+    configname character varying(50) NULL,
+    configdata json NULL,
+    updateat timestamp without time zone NULL
+  );
+
+ALTER TABLE
+  config
+ADD
+  CONSTRAINT config_pkey PRIMARY KEY (config_id);
+
+
 -- Habilita a extensão para geração de UUIDs v4 (Padrão PostgreSQL)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -164,4 +179,5 @@ CREATE UNIQUE INDEX idx_unique_pre_os_por_veiculo ON ordens_servico (veiculo_id)
 
 insert into prompts ("categoria", "conteudo", "id", "file_name") values ('Oficina', 'default', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7', 'prompt_mestre_oficina.md');
 insert into lojas ("id", "config_json", "created_at", "nome", "whatsapp_loja", "prompt_id") values ('adcfa329-c519-4ff7-be7b-ff021b2692c7', '{"assistente": {"nome": "Kadu", "pronomes": "Ela/Dela", "nome_completo": "Kamila Eduarda", "estado_civil": "solteira", "data_nascimento": "04-02-2005"}, "evolutionapi":{"apikey":"CxSFXk2tGLFW2WwqVR59jR","instanceName":"coreauto","EVOLUTIONAPI_URL_BASE":"https://evolution.rogeriomaciel.com.br"}}', '2026-02-28 19:27:47.653468+00', 'Kadosh', '556296425277', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7');
-insert into usuarios ("loja_id", "nome", "whatsapp", "email", "password_hash") values ('adcfa329-c519-4ff7-be7b-ff021b2692c7', 'Rogerio Maciel', '556296232227', 'rogerio@rogeriomaciel.com.br', '$2a$10$2s.vUdpT2.623.RuTeEsfOADamtwJoOOw39G6Of00JwLkwcYge/R.')
+insert into usuarios ("loja_id", "nome", "whatsapp", "email", "password_hash") values ('adcfa329-c519-4ff7-be7b-ff021b2692c7', 'Rogerio Maciel', '556296232227', 'rogerio@rogeriomaciel.com.br', '$2a$10$2s.vUdpT2.623.RuTeEsfOADamtwJoOOw39G6Of00JwLkwcYge/R.');
+insert into config ("config_id", "configdata", "configname", "updateat") values (1, '{"INTERNAL_SECRET":"MEUSEGREDOMAISSECRETO"}', 'CONTROLPANEL', NULL);
