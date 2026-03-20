@@ -164,6 +164,7 @@ CREATE TABLE ordens_servico (
     descricao_problema TEXT,
     orcamento_json JSONB DEFAULT '[]',
     valor_total DECIMAL(12, 2) DEFAULT 0.00,
+    data_diagnostico TIMESTAMPTZ, 
     data_entrada TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     data_conclusao TIMESTAMPTZ
 );
