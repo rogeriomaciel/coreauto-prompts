@@ -1,3 +1,5 @@
+drop table if exists config;
+drop table if exists usuariossocial;
 drop table if exists os_eventos;
 drop table if exists ordens_servico;
 drop table if exists veiculos;
@@ -25,6 +27,22 @@ ALTER TABLE
 ADD
   CONSTRAINT config_pkey PRIMARY KEY (config_id);
 
+
+-- Tabela para controle de login com o google
+CREATE TABLE
+  usuariossocial (
+    id serial NOT NULL,
+    google_id character varying(255) NULL,
+    email character varying(255) NULL,
+    name character varying(255) NULL,
+    picture varchar(255) null,
+    phone_number character varying(20) NULL
+  );
+
+ALTER TABLE
+  usuariossocial
+ADD
+  CONSTRAINT usuariossocial_pkey PRIMARY KEY (id);
 
 -- Habilita a extensão para geração de UUIDs v4 (Padrão PostgreSQL)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -111,7 +129,7 @@ CREATE TABLE usuarios (
     loja_id UUID NOT NULL REFERENCES lojas(id) ON DELETE CASCADE,
     pessoa_id UUID UNIQUE REFERENCES pessoas(id) ON DELETE SET NULL, -- Vincula o login ao perfil operacional
     nome VARCHAR(255) NOT NULL,
-    whatsapp varchar(255) NOT NULL,
+    whatsapp varchar(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT, -- Nulo se usar apenas login social
     google_id VARCHAR(255) UNIQUE, -- ID para Login com Google
