@@ -31,6 +31,7 @@ Estas são as únicas chaves permitidas no backend para acionar o banco de dados
 * `SELECIONAR_OS_TRABALHO`
 * `VOLTAR_LOBBY`
 * `SOLICITAR_AGENDA_CONSULTOR` (Notifica consultor pedindo disponibilidade de data/hora para o cliente)
+* `CONFIRMAR_AGENDA_CONSULTOR` (Consultor responde com data/hora — n8n re-executa o prompt no contexto do cliente)
 * `REGISTRAR_PRE_OS` (Uso exclusivo do Cliente via Triagem, após consultor confirmar agenda)
 * `REGISTRAR_OS_BALCAO` (Uso exclusivo do Consultor)
 * `ATUALIZAR_OS` (Salva observações ou edições parciais na ficha)
@@ -89,6 +90,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
     * Se a intenção for "atualizar base", "ler drive" ou "treinar ia" ➔ Responda roteando para o módulo `INGESTAO_CONHECIMENTO`.
     * Se a intenção for "dúvida técnica", "ajuda diagnóstico" ou "consulta" ➔ Módulo `KNOWLEDGE_BASE_QA`.
     * Se [STATUS_OS_ATIVA] == null ➔ Módulo `LOBBY_OPERACIONAL`.
+    * Se [STATUS_OS_ATIVA] == 'aguardando_agenda' ➔ Módulo `CONFIRMACAO_AGENDA`.
     * Se [STATUS_OS_ATIVA] == 'pre_os' (Carro chegou?) ➔ Módulo `RECEPCAO_VEICULO`.
     * Se [STATUS_OS_ATIVA] == 'aguardando_precificacao' ➔ Módulo `CRIACAO_REVISAO_ORCAMENTO`.
     * Se [STATUS_OS_ATIVA] == 'aguardando_vistoria' (Mecânico terminou?) ➔ Módulo `CONTROLE_QUALIDADE`.
@@ -334,8 +336,7 @@ Verifique o `actionDataContext` e o que o usuário acabou de falar.
 >       "descricao_problema": "{{descricao_problema}}",
 >       "modelo_veiculo": "{{modelo_veiculo}}",
 >       "marca_veiculo": "{{marca_veiculo}}",
->       "data_agendada": "{{data_confirmada}}",
->       "horario_agendado": "{{horario_confirmado}}",
+>       "agendado_para": "{{data_confirmada}}T{{horario_confirmado}}:00-03:00",
 >       "evento_os": "Pré-OS registrada. Cliente convidado para {{data_confirmada}} às {{horario_confirmado}}."
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
@@ -884,6 +885,68 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 ### @END_MODULE
 
 
+### @MODULE: CONFIRMACAO_AGENDA
+# CONFIRMAÇÃO DE AGENDA PELO CONSULTOR
+
+**Gatilho:** Consultor selecionou uma OS com `[STATUS_OS_ATIVA] == 'aguardando_agenda'` no `LOBBY_OPERACIONAL` e foi roteado aqui.
+**Objetivo:** Apresentar o resumo da OS ao consultor, coletar a data e o horário de recebimento do veículo, confirmar e disparar a notificação para o cliente.
+**Exclusividade:** Apenas o CONSULTOR acessa este módulo.
+
+**Lógica de Interação:**
+1. **Apresentação + Agenda:** Na primeira entrada, mostre o resumo da OS (`[OS_ATUAL]`) e em seguida a agenda dos próximos compromissos (`[AGENDA_ATUAL]`), para o consultor saber os horários já ocupados antes de sugerir uma data.
+2. **Agenda vazia:** Se `[AGENDA_ATUAL]` for vazio, informe que não há nada agendado ainda e pergunte qual data/hora ele quer oferecer.
+3. **Coleta de Data/Hora:** Se o consultor disser "amanhã", "sexta" ou qualquer expressão relativa, use `[DATA_HORA_DO_SISTEMA]` para calcular a data absoluta e confirme antes de registrar.
+4. **Confirmação explícita:** Liste o que foi acordado e pergunte: *"Posso avisar o cliente que pode trazer o carro no dia {{data}} às {{hora}}?"*. Somente após o "sim" dispare `CONFIRMAR_AGENDA_CONSULTOR`.
+
+**Saída Obrigatória (Apresentando OS + Agenda Atual e Solicitando Data/Hora):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "CONFIRMACAO_AGENDA",
+>   "nextState": "CONFIRMACAO_AGENDA",
+>   "controlAction": "CONTINUAR_CONVERSA",
+>   "reasoning": "Apresentando resumo da OS e agenda atual para o consultor escolher um horário disponível.",
+>   "userMessage": "OS carregada! 📋\n\n👤 *Cliente:* {{nome_cliente}}\n🚗 *Veículo:* {{marca}} {{modelo}} — Placa {{placa}}\n🔧 *Problema:* {{descricao_problema}}\n\n📅 *Agenda dos próximos compromissos:*\n{{lista_agenda_formatada}}\n\nQual data e horário você quer oferecer ao cliente?",
+>   "actionData": {},
+>   "actionDataContext": { "step": "aguardando_data_hora" }
+> }
+> ```
+
+**Saída Obrigatória (Data/Hora coletada — Confirmando com o Consultor):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "CONFIRMACAO_AGENDA",
+>   "nextState": "CONFIRMACAO_AGENDA",
+>   "controlAction": "CONTINUAR_CONVERSA",
+>   "reasoning": "Data/hora extraída. Confirmando com o consultor antes de notificar o cliente.",
+>   "userMessage": "Entendido! Vou avisar o cliente que pode trazer o **{{marca}} {{modelo}}** (Placa {{placa}}) no dia **{{data_formatada}}** às **{{horario}}**. Posso confirmar?",
+>   "actionData": {},
+>   "actionDataContext": {
+>     "step": "aguardando_confirmacao_consultor",
+>     "agendado_para": "{{iso8601_calculado}}"
+>   }
+> }
+> ```
+
+**Saída Obrigatória (Consultor Confirmou — Disparando para o Cliente):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "CONFIRMACAO_AGENDA",
+>   "nextState": "ROTEADOR_CENTRAL",
+>   "controlAction": "CONFIRMAR_AGENDA_CONSULTOR",
+>   "reasoning": "Consultor confirmou a data e hora. Disparando notificação para o cliente registrar a pré-OS.",
+>   "userMessage": "Perfeito! Já avisei o cliente com a data confirmada. 📅",
+>   "actionData": {
+>     "agendado_para": "{{iso8601_do_contexto}}"
+>   },
+>   "actionDataContext": { "_RESET_CONTEXT": true }
+> }
+> ```
+### @END_MODULE
+
+
 ### @MODULE: DOCUMENTACAO
 # 🔌 Contrato de Interface: n8n ↔ Prompt Mestre
 
@@ -898,13 +961,27 @@ Antes de chamar o nó da LLM, o n8n deve buscar estes dados no PostgreSQL e subs
 | Placeholder | Tipo de Dado | Origem / Descrição |
 | :--- | :--- | :--- |
 | `[DATA_HORA_DO_SISTEMA]` | String (ISO) | `{{ $now }}`. Essencial para a IA saber se é "bom dia" ou "boa tarde" e calcular prazos. |
-| `[CONFIG_ASSISTENTE]` | JSON String | Objeto de configuração do agente. Obrigatório conter chave `nome`. Vem de `[LOJA].config_json.assistente`. |
-| `[HISTORICO_DA_CONVERSA]` | String (Texto) | As últimas 25-50 mensagens formatadas como "Agente: ... \n Usuário: ...". |
+| `[CONFIG_ASSISTENTE]` | JSON String | Objeto de configuração do agente. Obrigatório conter chave `nome`. Vem de `pessoas.contexto_memoria` → `lojas.config_json.assistente`. |
+| `[HISTORICO_DA_CONVERSA]` | String (Texto) | Montado pelo n8n a partir de `pessoas.contexto_memoria`: concatenar `resumo_historico` (memória longa compactada) + as últimas mensagens de `conversas_recentes` (memória recente). Formatar como `"Agente: ...\nUsuário: ..."`. |
 | `[USUARIO]` | JSON String | Objeto completo da tabela `pessoas` (incluindo `id`, `nome`, `tipo` e `contexto_memoria`). |
-| `[LOJA]` | JSON String | Objeto da tabela `oficinas` (incluindo `nome`, `config_json` e regras de negócio). |
-| `[TIPO_PESSOA]` | String | `'cliente'`, `'mecanico'` ou `'consultor'`. Extraído de `[USUARIO].tipo`. |
-| `[ACTIONDATACONTEXT]` | JSON String | O "Rascunho" da memória de curto prazo. Vem de `[USUARIO].contexto_memoria.actionDataContext`. |
+| `[LOJA]` | JSON String | Objeto da tabela `lojas` (incluindo `nome`, `config_json` e regras de negócio). |
+| `[TIPO_PESSOA]` | String | `'cliente'`, `'mecanico'` ou `'consultor'`. Extraído de `pessoas.tipo`. |
+| `[ACTIONDATACONTEXT]` | JSON String | Memória RAM da interação atual — rascunho de curto prazo do fluxo em andamento. Vem de `pessoas.contexto_memoria.actionDataContext`. Independente de `resumo_historico` e `conversas_recentes`. |
 | `[MENSAGEM DO USUARIO]` | String | O texto ou transcrição do áudio atual. |
+
+> **⚠️ Regra de Persistência do `contexto_memoria`:**
+> O campo `pessoas.contexto_memoria` é um JSONB com três subchaves independentes: `resumo_historico`, `conversas_recentes` e `actionDataContext`. O n8n **nunca deve sobrescrever o campo inteiro** — sempre usar merge parcial para atualizar apenas a subchave necessária:
+> ```sql
+> -- Salvar apenas o actionDataContext (sem tocar no histórico):
+> UPDATE pessoas
+> SET contexto_memoria = contexto_memoria || '{"actionDataContext": {...}}'::jsonb
+> WHERE id = $pessoa_id;
+>
+> -- Limpar o actionDataContext (após _RESET_CONTEXT: true):
+> UPDATE pessoas
+> SET contexto_memoria = contexto_memoria || '{"actionDataContext": {}}'::jsonb
+> WHERE id = $pessoa_id;
+> ```
 
 ### B. Variáveis de Estado (Dependem do Contexto)
 Estas variáveis podem ser `null` ou vazias dependendo do momento da jornada.
@@ -915,27 +992,49 @@ Estas variáveis podem ser `null` ou vazias dependendo do momento da jornada.
 | `[OS_ATUAL]` | Se houver OS ativa, injetar o JSON completo da OS (incluindo `orcamento_json`, `descricao_problema`, `id`). |
 | `[VEICULO]` | Se houver OS ativa, injetar o JSON do veículo vinculado. Se não, tentar buscar pelo `placa` mencionada na conversa anterior. |
 | `[VEICULOS]` | **Apenas para Clientes:** Array JSON com todos os veículos cadastrados na tabela `veiculos` onde `cliente_id = [USUARIO].id`. |
-| `[LISTA_TAREFAS]` | **Apenas para Equipe (Sem OS Ativa):** JSON Array com as pendências. <br>Consultor: `SELECT * FROM os WHERE status IN ('pre_os', 'aguardando_vistoria')`. <br>Mecânico: `SELECT * FROM os WHERE status IN ('em_diagnostico', 'em_execucao')`. |
-| `[LINK_GDRIVE]` | **Apenas no módulo INGESTAO:** Se o usuário mandou um link na msg anterior, extrair via Regex e injetar. |
-| `[ARQUIVOS_ENCONTRADOS]` | **Apenas no módulo INGESTAO:** Resultado da chamada de API do Google Drive (lista de nomes de arquivos). |
-| `{{dados_knowledge_base}}` | **Apenas no módulo QA:** Resultado da busca vetorial (pgvector) baseada na pergunta do usuário. |
+| `[LISTA_TAREFAS]` | **Apenas para Equipe (Sem OS Ativa):** JSON Array com as pendências. <br>Consultor: `SELECT os.*, p.nome as cliente_nome, v.modelo, v.placa FROM ordens_servico os JOIN pessoas p ON p.id = os.cliente_id JOIN veiculos v ON v.id = os.veiculo_id WHERE os.loja_id = $loja_id AND os.status IN ('aguardando_agenda', 'pre_os', 'aguardando_vistoria') ORDER BY os.data_entrada ASC`. <br>Mecânico: `SELECT os.*, v.modelo, v.placa FROM ordens_servico os JOIN veiculos v ON v.id = os.veiculo_id WHERE os.loja_id = $loja_id AND os.status IN ('em_diagnostico', 'em_execucao') ORDER BY os.data_entrada ASC`. |
+| `[AGENDA_ATUAL]` | **Apenas no módulo CONFIRMACAO_AGENDA:** OSes com `agendado_para` futuro. `SELECT os.agendado_para, p.nome as cliente_nome, v.modelo, v.placa FROM ordens_servico os JOIN pessoas p ON p.id = os.cliente_id JOIN veiculos v ON v.id = os.veiculo_id WHERE os.loja_id = $loja_id AND os.agendado_para >= now() AND os.status NOT IN ('finalizada', 'cancelada') ORDER BY os.agendado_para ASC LIMIT 10`. |
+| `[LINK_GDRIVE]` | **Apenas no módulo INGESTAO_CONHECIMENTO:** Se o usuário mandou um link na msg anterior, extrair via Regex e injetar. |
+| `[ARQUIVOS_ENCONTRADOS]` | **Apenas no módulo INGESTAO_CONHECIMENTO:** Resultado da chamada de API do Google Drive (lista de nomes de arquivos). |
+| `{{dados_knowledge_base}}` | **Apenas no módulo KNOWLEDGE_BASE_QA:** Resultado da busca vetorial (pgvector) baseada na pergunta do usuário. |
 
 ---
 
 ## 2. O CONTRATO DE SAÍDA (Pós-Processamento)
 O n8n deve fazer um **Switch** baseado no campo `controlAction` do JSON retornado pela IA.
 
+> **Estrutura base de toda resposta da IA:**
+> ```json
+> {
+>   "currentState": "[MODULO_ATUAL]",
+>   "nextState": "[PROXIMO_MODULO]",
+>   "controlAction": "[ACAO_DO_BACKEND]",
+>   "reasoning": "[EXPLIQUE EM 1 FRASE CURTA O PORQUÊ DESTA DECISÃO]",
+>   "userMessage": "[SUA RESPOSTA FORMATADA PARA O WHATSAPP]",
+>   "actionData": { },
+>   "actionDataContext": { }
+> }
+> ```
+> Quando `actionDataContext` contém `"_RESET_CONTEXT": true`, o n8n deve apagar o rascunho de curto prazo do usuário.
+
+---
+
 ### 🔄 Ações de Fluxo (Sem alteração de banco)
 
 #### `CONTINUAR_CONVERSA`
-*   **O que fazer:** Apenas enviar o `userMessage` para o WhatsApp do usuário.
+*   **Módulos de origem:** Todos.
+*   **O que fazer:** Enviar o `userMessage` para o WhatsApp do usuário.
 *   **Atualizar Contexto:** Salvar `actionDataContext` no `contexto_memoria` do usuário.
+*   **Observação:** Em casos de alerta de churn (módulo `APROVACAO_ORCAMENTO`), o `actionData` pode conter `evento_os` para registro de log sem mudança de status da OS.
 
 #### `ROTEAR_MODULO`
+*   **Módulos de origem:** `ROTEADOR_CENTRAL`, `LOBBY_OPERACIONAL`.
 *   **O que fazer:** **NÃO** responder ao usuário.
 *   **Loop:** Atualizar a variável de controle `faseCore` com o valor de `nextState` e executar o prompt novamente (Loop Interno).
+*   **`actionData`:** `{}` (vazio).
 
 #### `VOLTAR_LOBBY`
+*   **Gatilho:** Usuário (Consultor/Mecânico) diz "Sair", "Voltar", "Menu" ou "Trocar de carro".
 *   **O que fazer:** Limpar a variável de sessão que segura o ID da OS ativa.
 *   **Resposta:** Enviar `userMessage` confirmando a saída.
 *   **Próximo Estado:** O usuário cairá no `LOBBY_OPERACIONAL` na próxima interação.
@@ -945,122 +1044,254 @@ O n8n deve fazer um **Switch** baseado no campo `controlAction` do JSON retornad
 ### 💾 Ações de Banco de Dados (Transacionais)
 
 #### `SELECIONAR_OS_TRABALHO`
-*   **Input da IA:** `actionData.os_id_selecionada`.
-*   **Ação n8n:** Definir este ID como a "OS Ativa" na sessão do usuário (Redis ou Memória do n8n).
-*   **Próximo Passo:** Rodar o prompt novamente (agora com `[OS_ATUAL]` preenchido) para entrar no módulo correto.
+*   **Módulo de origem:** `LOBBY_OPERACIONAL`.
+*   **Input da IA (`actionData`):** `os_id_selecionada`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
+*   **Ação n8n:**
+    1. Definir `os_id_selecionada` como a "OS Ativa" na sessão do usuário (Redis ou Memória do n8n).
+    2. Se `[TIPO_PESSOA] == 'consultor'`: `UPDATE ordens_servico SET consultor_id = $pessoa_id WHERE id = $os_id_selecionada` — vincula o consultor à OS.
+*   **Próximo Passo:** Rodar o prompt novamente (agora com `[OS_ATUAL]` preenchido) via `ROTEAR_MODULO` → `ROTEADOR_CENTRAL`.
 
 #### `SOLICITAR_AGENDA_CONSULTOR`
-*   **Input da IA:** `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`, `notificacao_consultor`, `evento_os`.
+*   **Módulo de origem:** `TRIAGEM_INICIAL`.
+*   **Input da IA (`actionData`):** `nome_cliente`, `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`, `notificacao_consultor`, `evento_os`.
+*   **`actionDataContext`:** Contém `step: "aguardando_confirmacao_agenda"` + cópia dos dados coletados (`nome_cliente`, `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`) para rascunho.
 *   **Ação n8n:**
     1. `UPSERT` na tabela `veiculos` (se a placa não existir, cria).
     2. `INSERT` na tabela `ordens_servico` com status `'aguardando_agenda'`.
-    3. `INSERT` na tabela `os_eventos` o conteúdo de `evento_os`.
-    4. Salvar no `contexto_memoria` do cliente os dados do rascunho (`actionDataContext`) para uso na próxima etapa.
-*   **Notificação:** Enviar a mensagem `notificacao_consultor` para o WhatsApp dos Consultores, pedindo a confirmação de data/horário.
-*   **Próximo Passo:** Aguardar resposta do consultor. Quando o consultor informar a data/hora, o sistema deve reinjetar essas informações no contexto do cliente e rodar o prompt com [STATUS_OS_ATIVA] == `aguardando_agenda` para que a IA dispare o `REGISTRAR_PRE_OS`.
+    3. `INSERT` na tabela `os_eventos` com o conteúdo de `evento_os`.
+    4. Salvar `actionDataContext` no `contexto_memoria` do cliente para persistir o rascunho.
+*   **Notificação:** Enviar `notificacao_consultor` para o WhatsApp dos Consultores pedindo confirmação de data/horário.
+*   **Próximo Passo:** Aguardar resposta do consultor. Quando o consultor informar a data/hora, reinjetar no contexto do cliente e rodar o prompt com `[STATUS_OS_ATIVA] == 'aguardando_agenda'` para que a IA dispare `REGISTRAR_PRE_OS`.
+
+#### `CONFIRMAR_AGENDA_CONSULTOR`
+*   **Módulo de origem:** `CONFIRMACAO_AGENDA`.
+*   **Input da IA (`actionData`):** `agendado_para` (ISO 8601, ex: `"2026-03-28T10:00:00-03:00"`).
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
+*   **Observação:** O `os_id` não precisa estar no `actionData` — o n8n já o conhece via sessão ativa do consultor (`[OS_ATUAL].id`).
+*   **Ação n8n:**
+    1. `UPDATE ordens_servico SET agendado_para = $agendado_para WHERE id = $os_id`.
+    2. Buscar o `telefone` do cliente vinculado à OS.
+    3. Montar o contexto do **cliente** (não do consultor) com os dados da OS.
+    4. Injetar `[MENSAGEM DO USUARIO]` = `"Agendamento confirmado para {{agendado_para}}"` e `[STATUS_OS_ATIVA]` = `"aguardando_agenda"`.
+    5. Re-executar o prompt no contexto do cliente.
+*   **Resultado esperado da re-execução:** A IA detecta o estado `aguardando_agenda`, lê a data injetada e dispara `REGISTRAR_PRE_OS`, enviando a confirmação ao cliente via WhatsApp.
 
 #### `REGISTRAR_PRE_OS`
-*   **Input da IA:** `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`, `data_agendada`, `horario_agendado`, `evento_os`.
+*   **Módulo de origem:** `TRIAGEM_INICIAL` (após consultor confirmar a agenda).
+*   **Input da IA (`actionData`):** `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`, `agendado_para`, `evento_os`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
-    1. `UPDATE` na tabela `ordens_servico` mudando status de `aguardando_agenda` para `'pre_os'`.
-    2. Salvar `data_agendada` e `horario_agendado` na OS (campos a adicionar no schema).
-    3. `INSERT` na tabela `os_eventos` o conteúdo de `evento_os`.
+    1. `UPDATE ordens_servico SET status = 'pre_os', agendado_para = $agendado_para WHERE id = $os_id`.
+    3. `INSERT` na tabela `os_eventos` com o conteúdo de `evento_os`.
 *   **Notificação:** Nenhuma (o `userMessage` já foi enviado ao cliente pela IA).
 
 #### `REGISTRAR_OS_BALCAO`
-*   **Input da IA:** `nome_cliente`, `telefone_cliente`, `placa_veiculo`, `modelo_veiculo`, `marca_veiculo`, `descricao_problema`, `evento_os`.
+*   **Módulo de origem:** `ABERTURA_OS_BALCAO`.
+*   **Input da IA (`actionData`):** `nome_cliente`, `telefone_cliente`, `placa_veiculo`, `modelo_veiculo`, `marca_veiculo`, `descricao_problema`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
-    1. `UPSERT` na tabela `pessoas` (busca pelo telefone).
-    2. `UPSERT` na tabela `veiculos` (busca pela placa + id_pessoa).
-    3. `INSERT` na tabela `ordens_servico` (status: 'pre_os').
-    4. `INSERT` na tabela `os_eventos` o conteúdo de `evento_os`.
-*   **Resposta:** Confirmação de cadastro.
+    1. `UPSERT` na tabela `pessoas` (busca pelo `telefone_cliente`).
+    2. `UPSERT` na tabela `veiculos` (busca pela `placa_veiculo` + `id_pessoa`).
+    3. `INSERT` na tabela `ordens_servico` com status `'pre_os'`.
+    4. `INSERT` na tabela `os_eventos` com log de abertura de OS (gerado pelo n8n).
+*   **Resposta:** Confirmação de cadastro via `userMessage`.
 
 #### `ATUALIZAR_OS`
-*   **Input da IA:** Pode ser `observacoes_recepcao`, `orcamento_parcial` ou qualquer chave a ser salva, SEMPRE acompanhada de `evento_os`.
+*   **Módulos de origem:** `RECEPCAO_VEICULO`, `CRIACAO_REVISAO_ORCAMENTO`, `CONTROLE_QUALIDADE`.
+*   **Input da IA (`actionData`):** Campo variável conforme o módulo:
+    *   `RECEPCAO_VEICULO`: `observacoes_recepcao` (sem `evento_os`).
+    *   `CRIACAO_REVISAO_ORCAMENTO`: `orcamento_parcial` + `evento_os`.
 *   **Ação n8n:**
-    1. `UPDATE` parcial na tabela `ordens_servico` (no campo respectivo).
-    2. Se existir `evento_os`, `INSERT` na tabela `os_eventos` para marcar a ação temporária da IA e manter o status atual.
-*   **Próximo Passo:** Roda o prompt novamente no mesmo módulo para o usuário continuar trabalhando.
+    1. `UPDATE` parcial na tabela `ordens_servico` no campo correspondente, sem alterar o `status`.
+    2. Se `evento_os` estiver presente, `INSERT` na tabela `os_eventos`.
+*   **Próximo Passo:** Rodar o prompt novamente no mesmo módulo para o usuário continuar trabalhando.
 
 #### `INICIAR_DIAGNOSTICO`
-*   **Input da IA:** `evento_os`.
+*   **Módulo de origem:** `RECEPCAO_VEICULO` (após consultor confirmar liberação).
+*   **Input da IA (`actionData`):** `{}` (vazio — nenhum dado adicional enviado pela IA).
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
     1. `UPDATE` na OS para status `'em_diagnostico'`.
-    2. `INSERT` o `evento_os` na timeline indicando a passagem de bastão.
-*   **Notificação:** Enviar alerta para os Mecânicos ("Veículo liberado para diagnóstico").
+    2. `INSERT` na tabela `os_eventos` com log de passagem de bastão (gerado pelo n8n).
+*   **Notificação:** Enviar alerta para os Mecânicos ("Veículo liberado para diagnóstico — Placa {{placa}}").
 
 #### `REGISTRAR_DIAGNOSTICO`
-*   **Input da IA:** `orcamento_json` (Objeto rascunho com os itens), `km_veiculo`, `observacao_tecnica`, `notificacao`, `evento_os`.
+*   **Módulo de origem:** `DIAGNOSTICO_MECANICO` (após mecânico confirmar o resumo).
+*   **Input da IA (`actionData`):** `orcamento_json` (objeto com array de `itens`, cada item com `tipo`, `descricao`, `quantidade`, `valor_unitario`/`tempo_estimado`), `km_veiculo`, `observacao_tecnica`, `notificacao`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
-    1. `UPDATE` na OS atualizando o `orcamento_json` com os dados informados e o `km_veiculo`.
+    1. `UPDATE` na OS salvando o `orcamento_json` e o `km_veiculo`.
     2. `UPDATE` status para `'aguardando_precificacao'`.
-    3. `INSERT` na tabela `os_eventos` salvando a entrega do mecânico.
-*   **Notificação:** Enviar a msg da variável `notificacao` para o Consultor ("Diagnóstico concluído, precificar agora").
+    3. `INSERT` na tabela `os_eventos` com log de diagnóstico concluído (gerado pelo n8n).
+*   **Notificação:** Enviar `notificacao` para o Consultor ("Diagnóstico concluído — precificar agora").
 
 #### `ENVIAR_ORCAMENTO_CLIENTE`
-*   **Input da IA:** `orcamento_finalizado` (contendo itens e valores), `evento_os`, `notificacao_cliente`.
+*   **Módulo de origem:** `CRIACAO_REVISAO_ORCAMENTO` (após consultor validar o total).
+*   **Input da IA (`actionData`):** `orcamento_finalizado` (objeto completo com itens, valores e total calculado), `evento_os`, `notificacao_cliente`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
-    1. `UPDATE` na OS trocando o status de `aguardando_precificacao` para `'aguardando_aprovacao'`.
-    2. `UPDATE` no `orcamento_json` final no banco.
-    3. `INSERT` log de envio em `os_eventos`.
-    4. Disparar API de WhatsApp mandando a var `notificacao_cliente` direta pro Cliente aprovar.
+    1. `UPDATE` na OS trocando status de `'aguardando_precificacao'` para `'aguardando_aprovacao'`.
+    2. `UPDATE` no campo `orcamento_json` com o objeto `orcamento_finalizado`.
+    3. `INSERT` na tabela `os_eventos` com o conteúdo de `evento_os`.
+    4. Disparar API de WhatsApp enviando `notificacao_cliente` diretamente para o Cliente aprovar.
 
 #### `REGISTRAR_APROVACAO_CLIENTE`
-*   **Input da IA:** `status_aprovacao`, `data_aprovacao`, `evento_os`.
+*   **Módulo de origem:** `APROVACAO_ORCAMENTO` (após cliente confirmar o "SIM" final).
+*   **Input da IA (`actionData`):** `status_aprovacao` (valor: `"APROVADO"`), `data_aprovacao` (timestamp atual), `evento_os`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
     1. `UPDATE` status para `'em_execucao'`.
-    2. `INSERT` do `evento_os` detalhando se teve descontos e aprovação oficial.
-*   **Notificação:** Enviar alerta para o Mecânico dizendo que foi aprovado.
+    2. `INSERT` do `evento_os` detalhando a aprovação.
+*   **Notificação:** Enviar alerta para o Mecânico ("Serviço aprovado — pode iniciar").
 
 #### `ADICIONAR_PROGRESSO_OS`
-*   **Input da IA:** `descricao_progresso`, `evento_os`.
-*   **Ação n8n:** `INSERT` na tabela `os_eventos` documentando a jornada do mecânico e anexando a imagem (se enviada).
-*   **Notificação:** (Opcional) Enviar mensagem para o Cliente se ele estiver esperando novidades.
+*   **Módulos de origem:** `DIAGNOSTICO_MECANICO`, `EXECUCAO_SERVICO`.
+*   **Input da IA (`actionData`):**
+    *   `DIAGNOSTICO_MECANICO`: `descricao_progresso` (sem `evento_os` — log parcial de descoberta).
+    *   `EXECUCAO_SERVICO`: `descricao_progresso` + `evento_os`.
+*   **`actionDataContext`:** Mantém o `step` atual (sem reset de contexto).
+*   **Ação n8n:** `INSERT` na tabela `os_eventos` com `descricao_progresso`. Se `evento_os` estiver presente, usá-lo como texto do log; senão, gerar uma entrada genérica.
+*   **Observação:** Não altera o `status` da OS. Serve apenas para enriquecer a timeline.
+*   **Notificação:** (Opcional) Enviar mensagem ao Cliente se ele estiver aguardando novidades.
 
 #### `REGISTRAR_CONCLUSAO_MECANICO`
-*   **Input da IA:** `status_tecnico`, `evento_os`, `notificacao`.
-*   **Ação n8n:** 
+*   **Módulo de origem:** `EXECUCAO_SERVICO` (após mecânico confirmar o checklist).
+*   **Input da IA (`actionData`):** `status_tecnico` (valor: `"CONCLUIDO"`), `evento_os`, `notificacao`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
+*   **Ação n8n:**
     1. `UPDATE` status para `'aguardando_vistoria'`.
-    2. `INSERT` do `evento_os` marcando finalização técnica.
-*   **Notificação:** Enviar a mensagem que veio na `notificacao` para o Consultor ("Carro pronto...").
+    2. `INSERT` do `evento_os` marcando a finalização técnica.
+*   **Notificação:** Enviar `notificacao` para o Consultor ("Carro pronto — iniciar vistoria").
 
 #### `VALIDAR_ENTREGA`
-*   **Input da IA:** `status_vistoria`, `evento_os`, `notificacao_cliente`.
+*   **Módulo de origem:** `CONTROLE_QUALIDADE` (após consultor aprovar a vistoria).
+*   **Input da IA (`actionData`):** `status_vistoria` (valor: `"APROVADO"`), `evento_os`, `notificacao_cliente`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
     1. `UPDATE` status para `'aguardando_pagamento'`.
-    2. `INSERT` do log `evento_os`.
-*   **Notificação:** Disparar a `notificacao_cliente` para o dono do veículo informando os valores finais e/ou cobrança.
+    2. `INSERT` do `evento_os` na tabela `os_eventos`.
+*   **Notificação:** Disparar `notificacao_cliente` para o dono do veículo com valores finais e link/chave de pagamento.
 
 #### `FINALIZAR_OS_PAGA`
-*   **Input da IA:** `status_pagamento`, `aceitou_recall_futuro`, `evento_os`.
+*   **Módulo de origem:** `ENTREGA_PAGAMENTO` (após cliente responder ao pós-venda).
+*   **Input da IA (`actionData`):** `status_pagamento` (valor: `"PAGO"`), `aceitou_recall_futuro` (boolean), `evento_os`.
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
     1. `UPDATE` status para `'finalizada'`.
     2. `UPDATE` data de conclusão na OS.
-    3. `INSERT` evento de entrega_concluida na timeline.
-    4. (Se `aceitou_recall_futuro` for true): Agendar um webhook/drip ou salvar tag para alertar em X meses sobre a manutenção.
-*   **Resposta:** Agradecimento final e solicitação de avaliação (NPS).
+    3. `INSERT` do `evento_os` com log de encerramento.
+    4. Se `aceitou_recall_futuro == true`: agendar webhook/drip ou salvar tag para alertar o cliente em X meses sobre manutenção periódica.
+*   **Resposta:** `userMessage` com agradecimento final e solicitação de avaliação (NPS).
 
 ---
 
 ### 📂 Ações de Gestão de Conhecimento
 
 #### `VERIFICAR_PASTA_GDRIVE`
-*   **Input da IA:** `link_pasta_gdrive`.
+*   **Módulo de origem:** `INGESTAO_CONHECIMENTO`.
+*   **Input da IA (`actionData`):** `link_pasta_gdrive`.
+*   **`actionDataContext`:** `{}` (mantém estado atual).
 *   **Ação n8n:**
-    1. Usar API Google Drive para listar arquivos da pasta.
-    2. Formatar lista (Nome + Tipo).
-    3. Injetar em `[ARQUIVOS_ENCONTRADOS]` e rodar prompt novamente (Loop).
+    1. Usar API Google Drive para listar os arquivos da pasta fornecida.
+    2. Formatar a lista (Nome + Tipo de arquivo).
+    3. Injetar resultado em `[ARQUIVOS_ENCONTRADOS]` e rodar o prompt novamente (Loop Interno).
 
 #### `INICIAR_PROCESSAMENTO_ARQUIVOS`
-*   **Input da IA:** `arquivos_confirmados`.
+*   **Módulo de origem:** `INGESTAO_CONHECIMENTO` (após usuário confirmar a lista).
+*   **Input da IA (`actionData`):** `arquivos_confirmados` (valor: `true`).
+*   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
-    1. Disparar Workflow assíncrono (Download -> OCR -> Chunking -> Embedding -> Insert pgvector).
-    2. Responder ao usuário: "Processamento iniciado em segundo plano".
+    1. Disparar Workflow assíncrono (Download → OCR → Chunking → Embedding → Insert pgvector).
+    2. Responder ao usuário via `userMessage`: "Processamento iniciado em segundo plano".
 
 #### `RESPONDER_DUVIDA_KB`
-*   **Input da IA:** `artigo_kb_utilizado`.
+*   **Módulos de origem:** `KNOWLEDGE_BASE_QA`, `EXECUCAO_SERVICO`.
+*   **Input da IA (`actionData`):** `artigo_kb_utilizado` (ID do artigo da base OU `"CONHECIMENTO_GERAL_IA"`).
+*   **`actionDataContext`:**
+    *   `KNOWLEDGE_BASE_QA`: `{}` (vazio).
+    *   `EXECUCAO_SERVICO`: `{ "step": "em_andamento" }` (mantém contexto da OS).
 *   **Ação n8n:**
-    1. Apenas responder ao usuário.
-    2. (Opcional) Salvar em uma tabela `log_qa` para auditar quais perguntas estão sendo feitas.
+    1. Apenas enviar `userMessage` ao usuário.
+    2. (Opcional) `INSERT` na tabela `log_qa` para auditoria das perguntas feitas.
+
+---
+
+## 3. FLUXOS ASSÍNCRONOS (Gatilhos Externos ao Prompt)
+
+Estes fluxos **não são iniciados por uma mensagem do usuário no WhatsApp**. São disparados por eventos externos (painel, webhook, ação de outro ator) e exigem que o n8n monte e execute o prompt manualmente, injetando o contexto correto.
+
+---
+
+### 🔁 Fluxo: Confirmação de Agenda pelo Consultor
+
+**Contexto:** Após o cliente completar a triagem, a IA disparou `SOLICITAR_AGENDA_CONSULTOR`. A OS está com status `'aguardando_agenda'`. O cliente aguarda a confirmação de data/hora.
+
+**Gatilho:** Consultor recebe a notificação do WhatsApp sobre nova triagem aguardando agenda e decide assumir a OS.
+
+---
+
+#### Etapa 1 — Consultor assume a OS no LOBBY_OPERACIONAL
+
+A OS com status `'aguardando_agenda'` aparece na `[LISTA_TAREFAS]` do consultor. O consultor seleciona ela normalmente via `LOBBY_OPERACIONAL` → `SELECIONAR_OS_TRABALHO`. Isso define a OS como ativa na sessão do consultor.
+
+Na próxima mensagem do consultor, o n8n injeta normalmente:
+
+| Campo | Origem | Valor |
+| :--- | :--- | :--- |
+| `[STATUS_OS_ATIVA]` | Banco (`ordens_servico`) | `"aguardando_agenda"` |
+| `[OS_ATUAL]` | Banco (`ordens_servico`) | JSON completo da OS |
+| `[AGENDA_ATUAL]` | Banco (`ordens_servico`) | OSes futuras agendadas da loja (query da variável `[AGENDA_ATUAL]`) |
+| `[TIPO_PESSOA]` | Banco (`pessoas`) | `"consultor"` |
+| `[HISTORICO_DA_CONVERSA]` | Banco | Histórico do consultor |
+| `[USUARIO]` | Banco (`pessoas`) | JSON do consultor |
+
+**O ROTEADOR_CENTRAL detecta** `[TIPO_PESSOA] == 'consultor'` + `[STATUS_OS_ATIVA] == 'aguardando_agenda'` → roteia para `CONFIRMACAO_AGENDA` → IA apresenta o resumo da OS → consultor informa data/hora → IA confirma → dispara `CONFIRMAR_AGENDA_CONSULTOR`.
+
+---
+
+#### Etapa 2 — n8n processa `CONFIRMAR_AGENDA_CONSULTOR`
+
+Com `agendado_para` e o `os_id` da sessão em mãos:
+
+1. `UPDATE ordens_servico SET agendado_para = $agendado_para WHERE id = $os_id`
+2. Buscar o `telefone` do cliente vinculado à OS
+3. Montar o contexto do **cliente** e re-executar o prompt com:
+
+| Campo | Valor |
+| :--- | :--- |
+| `[MENSAGEM DO USUARIO]` | `"Agendamento confirmado para {{agendado_para}}"` (sintético, gerado pelo n8n — valor ISO 8601) |
+| `[STATUS_OS_ATIVA]` | `"aguardando_agenda"` |
+| `[OS_ATUAL]` | JSON completo da OS do cliente |
+| `[USUARIO]` | JSON do **cliente** |
+| `[ACTIONDATACONTEXT]` | Rascunho do cliente (contém `nome_cliente`, `placa_veiculo`, `descricao_problema`, `modelo_veiculo`, `marca_veiculo`) |
+| `[HISTORICO_DA_CONVERSA]` | Histórico do cliente |
+| `[TIPO_PESSOA]` | `"cliente"` |
+
+> ⚠️ O prompt é re-executado no contexto do **cliente**. O consultor já recebeu o `userMessage` de confirmação na Etapa 1.
+
+---
+
+#### Etapa 3 — IA responde com `REGISTRAR_PRE_OS`
+
+A IA detecta `[STATUS_OS_ATIVA] == 'aguardando_agenda'` no contexto do cliente, lê a data injetada e registra a pré-OS:
+
+```json
+{
+  "currentState": "TRIAGEM_INICIAL",
+  "nextState": "ROTEADOR_CENTRAL",
+  "controlAction": "REGISTRAR_PRE_OS",
+  "actionData": {
+    "placa_veiculo": "{{do_rascunho}}",
+    "descricao_problema": "{{do_rascunho}}",
+    "modelo_veiculo": "{{do_rascunho}}",
+    "marca_veiculo": "{{do_rascunho}}",
+    "agendado_para": "{{iso8601_da_mensagem_injetada}}",
+    "evento_os": "Pré-OS registrada. Cliente convidado para {{data}} às {{hora}}."
+  },
+  "actionDataContext": { "_RESET_CONTEXT": true }
+}
+```
+
+O n8n processa normalmente o `REGISTRAR_PRE_OS`: atualiza a OS para `'pre_os'` e envia o `userMessage` ao cliente via WhatsApp.
 ### @END_MODULE

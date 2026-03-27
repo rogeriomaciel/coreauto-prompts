@@ -1,0 +1,373 @@
+{
+  "name": "COREAUTOCRM-MONTAR-CONTEXTO",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "mc-node-0001",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-001",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "LOBBY_OPERACIONAL",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOBBY_OPERACIONAL"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-002",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "TRIAGEM_INICIAL",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TRIAGEM_INICIAL"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-003",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "RECEPCAO_VEICULO",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RECEPCAO_VEICULO"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-004",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "CONFIRMACAO_AGENDA",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CONFIRMACAO_AGENDA"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-005",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "DIAGNOSTICO_MECANICO",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DIAGNOSTICO_MECANICO"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-006",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "EXECUCAO_SERVICO",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "EXECUCAO_SERVICO"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [
+                  {
+                    "id": "sw-rule-007",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
+                    "rightValue": "",
+                    "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DEFAULT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mc-node-0003",
+      "typeVersion": 3.4,
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "position": [240, 0]
+    },
+
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE((SELECT json_agg(json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'agendado_para',os.agendado_para,'data_entrada',os.data_entrada,'valor_total',os.valor_total,'nome_cliente',p.nome,'whatsapp_cliente',p.whatsapp,'placa',v.placa,'modelo',v.modelo,'marca',v.marca) ORDER BY os.data_entrada ASC) FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id JOIN veiculos v ON v.id=os.veiculo_id WHERE os.loja_id=$1 AND os.status NOT IN ('finalizado','cancelado')),'[]'::json) AS lista_tarefas",
+        "options": {
+          "queryReplacement": "={{ $('Start').item.json.loja.id }}"
+        }
+      },
+      "id": "mc-node-0004",
+      "typeVersion": 2.6,
+      "name": "Lobby: Query Lista Tarefas",
+      "type": "n8n-nodes-base.postgres",
+      "position": [480, -720],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Start').item.json;\nconst result = $input.first().json;\ninput.contexto = {\n  STATUS_OS_ATIVA: null,\n  OS_ATUAL: null,\n  VEICULO: null,\n  LISTA_TAREFAS: result.lista_tarefas || [],\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\nreturn [{ json: input }];"
+      },
+      "id": "mc-node-0005",
+      "typeVersion": 2,
+      "name": "Lobby: Montar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [720, -720]
+    },
+
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE((SELECT json_agg(json_build_object('id',v.id,'placa',v.placa,'modelo',v.modelo,'marca',v.marca,'ano',v.ano,'cor',v.cor,'km_atual',v.km_atual)) FROM veiculos v WHERE v.cliente_id=$1),'[]'::json) AS veiculos, (SELECT json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'orcamento_json',os.orcamento_json,'valor_total',os.valor_total,'agendado_para',os.agendado_para) FROM ordens_servico os WHERE os.cliente_id=$1 AND os.status NOT IN ('finalizado','cancelado') ORDER BY os.data_entrada DESC LIMIT 1) AS os_ativa",
+        "options": {
+          "queryReplacement": "={{ $('Start').item.json.pessoa.id }}"
+        }
+      },
+      "id": "mc-node-0006",
+      "typeVersion": 2.6,
+      "name": "Triagem: Query Veículos e OS",
+      "type": "n8n-nodes-base.postgres",
+      "position": [480, -360],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Start').item.json;\nconst result = $input.first().json;\nconst osAtiva = result.os_ativa;\ninput.contexto = {\n  STATUS_OS_ATIVA: osAtiva?.status || null,\n  OS_ATUAL: osAtiva || null,\n  VEICULO: result.veiculos || [],\n  LISTA_TAREFAS: [],\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\nreturn [{ json: input }];"
+      },
+      "id": "mc-node-0007",
+      "typeVersion": 2,
+      "name": "Triagem: Montar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [720, -360]
+    },
+
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH os_ref AS (SELECT os.id,os.loja_id,os.status,os.descricao_problema,os.agendado_para,os.orcamento_json,os.valor_total,p.nome AS nome_cliente,p.whatsapp AS whatsapp_cliente,v.placa,v.modelo FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id JOIN veiculos v ON v.id=os.veiculo_id WHERE os.id=$1) SELECT (SELECT row_to_json(r) FROM os_ref r LIMIT 1) AS os_atual, COALESCE((SELECT json_agg(json_build_object('id',os2.id,'agendado_para',os2.agendado_para,'status',os2.status,'nome_cliente',p2.nome,'placa',v2.placa) ORDER BY os2.agendado_para ASC) FROM ordens_servico os2 CROSS JOIN (SELECT loja_id FROM os_ref LIMIT 1) r JOIN pessoas p2 ON p2.id=os2.cliente_id JOIN veiculos v2 ON v2.id=os2.veiculo_id WHERE os2.loja_id=r.loja_id AND os2.agendado_para IS NOT NULL AND os2.status NOT IN ('finalizado','cancelado')),'[]'::json) AS agenda_atual",
+        "options": {
+          "queryReplacement": "={{ $('Start').item.json.pessoa.contexto_memoria.actionDataContext.os_id }}"
+        }
+      },
+      "id": "mc-node-0008",
+      "typeVersion": 2.6,
+      "name": "Agenda: Query OS e Agenda",
+      "type": "n8n-nodes-base.postgres",
+      "position": [480, 0],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Start').item.json;\nconst result = $input.first().json;\nconst osAtual = result.os_atual;\ninput.contexto = {\n  STATUS_OS_ATIVA: osAtual?.status || null,\n  OS_ATUAL: osAtual || null,\n  VEICULO: null,\n  LISTA_TAREFAS: [],\n  AGENDA_ATUAL: result.agenda_atual || []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\nreturn [{ json: input }];"
+      },
+      "id": "mc-node-0009",
+      "typeVersion": 2,
+      "name": "Agenda: Montar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [720, 0]
+    },
+
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT (SELECT json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'orcamento_json',os.orcamento_json,'valor_total',os.valor_total,'data_diagnostico',os.data_diagnostico,'data_entrada',os.data_entrada,'nome_cliente',p.nome) FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id WHERE os.id=$1 LIMIT 1) AS os_atual, (SELECT json_build_object('id',v.id,'placa',v.placa,'modelo',v.modelo,'marca',v.marca,'ano',v.ano,'cor',v.cor,'km_atual',v.km_atual) FROM veiculos v JOIN ordens_servico os ON os.veiculo_id=v.id WHERE os.id=$1 LIMIT 1) AS veiculo",
+        "options": {
+          "queryReplacement": "={{ $('Start').item.json.pessoa.contexto_memoria.actionDataContext.os_id }}"
+        }
+      },
+      "id": "mc-node-0010",
+      "typeVersion": 2.6,
+      "name": "Mecânico: Query OS e Veículo",
+      "type": "n8n-nodes-base.postgres",
+      "position": [480, 360],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Start').item.json;\nconst result = $input.first().json;\ninput.contexto = {\n  STATUS_OS_ATIVA: result.os_atual?.status || null,\n  OS_ATUAL: result.os_atual || null,\n  VEICULO: result.veiculo || null,\n  LISTA_TAREFAS: [],\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\nreturn [{ json: input }];"
+      },
+      "id": "mc-node-0011",
+      "typeVersion": 2,
+      "name": "Mecânico: Montar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [720, 360]
+    },
+
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT (SELECT json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'agendado_para',os.agendado_para,'valor_total',os.valor_total) FROM ordens_servico os WHERE os.cliente_id=$1 AND os.status NOT IN ('finalizado','cancelado') ORDER BY os.data_entrada DESC LIMIT 1) AS os_ativa",
+        "options": {
+          "queryReplacement": "={{ $('Start').item.json.pessoa.id }}"
+        }
+      },
+      "id": "mc-node-0012",
+      "typeVersion": 2.6,
+      "name": "Default: Query STATUS_OS_ATIVA",
+      "type": "n8n-nodes-base.postgres",
+      "position": [480, 720],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Start').item.json;\nconst result = $input.first().json;\nconst osAtiva = result.os_ativa;\ninput.contexto = {\n  STATUS_OS_ATIVA: osAtiva?.status || null,\n  OS_ATUAL: osAtiva || null,\n  VEICULO: null,\n  LISTA_TAREFAS: [],\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\nreturn [{ json: input }];"
+      },
+      "id": "mc-node-0013",
+      "typeVersion": 2,
+      "name": "Default: Montar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [720, 720]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "mc-node-0014",
+      "typeVersion": 2,
+      "name": "Resposta",
+      "type": "n8n-nodes-base.code",
+      "position": [960, 0]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [{ "node": "Switch", "type": "main", "index": 0 }]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [{ "node": "Lobby: Query Lista Tarefas", "type": "main", "index": 0 }],
+        [{ "node": "Triagem: Query Veículos e OS", "type": "main", "index": 0 }],
+        [{ "node": "Triagem: Query Veículos e OS", "type": "main", "index": 0 }],
+        [{ "node": "Agenda: Query OS e Agenda", "type": "main", "index": 0 }],
+        [{ "node": "Mecânico: Query OS e Veículo", "type": "main", "index": 0 }],
+        [{ "node": "Mecânico: Query OS e Veículo", "type": "main", "index": 0 }],
+        [{ "node": "Default: Query STATUS_OS_ATIVA", "type": "main", "index": 0 }]
+      ]
+    },
+    "Lobby: Query Lista Tarefas": {
+      "main": [
+        [{ "node": "Lobby: Montar Contexto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Lobby: Montar Contexto": {
+      "main": [
+        [{ "node": "Resposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Triagem: Query Veículos e OS": {
+      "main": [
+        [{ "node": "Triagem: Montar Contexto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Triagem: Montar Contexto": {
+      "main": [
+        [{ "node": "Resposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agenda: Query OS e Agenda": {
+      "main": [
+        [{ "node": "Agenda: Montar Contexto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agenda: Montar Contexto": {
+      "main": [
+        [{ "node": "Resposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mecânico: Query OS e Veículo": {
+      "main": [
+        [{ "node": "Mecânico: Montar Contexto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mecânico: Montar Contexto": {
+      "main": [
+        [{ "node": "Resposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Default: Query STATUS_OS_ATIVA": {
+      "main": [
+        [{ "node": "Default: Montar Contexto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Default: Montar Contexto": {
+      "main": [
+        [{ "node": "Resposta", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "tags": []
+}

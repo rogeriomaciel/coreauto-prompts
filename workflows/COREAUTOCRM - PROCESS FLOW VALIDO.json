@@ -128,7 +128,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1536,
+        1456,
         -80
       ],
       "name": "Call COREAUTOCRM-RESUMIDOR",
@@ -156,7 +156,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1856,
+        1872,
         -80
       ],
       "name": "Call COREAUTOCRM-EXECUTAR-PROMPT",
@@ -187,6 +187,34 @@
       ],
       "name": "Call COREAUTOCRM-PROCESSAR-RESPOSTA-IA",
       "id": "69af3af0-261e-458e-95cd-4f8df49be7bd"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ztU5e4Q2Uny7zdakx3_7o",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ztU5e4Q2Uny7zdakx3_7o",
+          "cachedResultName": "COREAUTOCRM-MONTAR-CONTEXTO"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1664,
+        -80
+      ],
+      "id": "715096d9-3caf-41f1-ac4d-c372a3d161a2",
+      "name": "Call 'COREAUTOCRM-MONTAR-CONTEXTO'"
     }
   ],
   "pinData": {
@@ -299,7 +327,7 @@
       "main": [
         [
           {
-            "node": "Call COREAUTOCRM-EXECUTAR-PROMPT",
+            "node": "Call 'COREAUTOCRM-MONTAR-CONTEXTO'",
             "type": "main",
             "index": 0
           }
@@ -327,6 +355,17 @@
           }
         ]
       ]
+    },
+    "Call 'COREAUTOCRM-MONTAR-CONTEXTO'": {
+      "main": [
+        [
+          {
+            "node": "Call COREAUTOCRM-EXECUTAR-PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -334,7 +373,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "fa094673-3372-4f0a-8a94-762cc5b8308d",
+  "versionId": "7eeaf703-095b-4822-b277-097b386aac83",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"

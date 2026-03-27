@@ -157,6 +157,7 @@ CREATE TABLE veiculos (
 
 CREATE TABLE ordens_servico (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    loja_id UUID NOT NULL REFERENCES lojas(id) ON DELETE CASCADE,
     veiculo_id UUID NOT NULL REFERENCES veiculos(id),
     cliente_id UUID NOT NULL REFERENCES pessoas(id),
     consultor_id UUID REFERENCES pessoas(id),
@@ -164,7 +165,8 @@ CREATE TABLE ordens_servico (
     descricao_problema TEXT,
     orcamento_json JSONB DEFAULT '[]',
     valor_total DECIMAL(12, 2) DEFAULT 0.00,
-    data_diagnostico TIMESTAMPTZ, 
+    agendado_para TIMESTAMPTZ,                   -- Data e hora confirmadas pelo consultor para recebimento do veículo
+    data_diagnostico TIMESTAMPTZ,
     data_entrada TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     data_conclusao TIMESTAMPTZ
 );
@@ -192,8 +194,10 @@ CREATE TABLE os_eventos (
 CREATE INDEX idx_pessoas_whatsapp ON pessoas(whatsapp);
 CREATE INDEX idx_kb_loja_categoria ON knowledge_base(loja_id, categoria);
 CREATE INDEX idx_os_eventos_ordem ON os_eventos(os_id, data_registro DESC);
--- Garante que só pode existir uma 'pre_os' por veículo.
-CREATE UNIQUE INDEX idx_unique_pre_os_por_veiculo ON ordens_servico (veiculo_id) WHERE status in ('pre_os', 'aguardando_agenda') ;
+CREATE INDEX idx_os_loja_status ON ordens_servico(loja_id, status);
+CREATE INDEX idx_os_agendado_para ON ordens_servico(loja_id, agendado_para) WHERE agendado_para IS NOT NULL;
+-- Garante que só pode existir uma OS ativa por veículo nos status de entrada.
+CREATE UNIQUE INDEX idx_unique_pre_os_por_veiculo ON ordens_servico (veiculo_id) WHERE status IN ('pre_os', 'aguardando_agenda');
 
 
 insert into prompts ("categoria", "conteudo", "id", "file_name") values ('Oficina', 'default', 'cdcfa329-c519-4ff7-be7b-ff021b2692c7', 'prompt_mestre_oficina.md');
