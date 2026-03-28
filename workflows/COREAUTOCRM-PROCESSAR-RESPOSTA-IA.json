@@ -429,6 +429,31 @@
                 },
                 "conditions": [
                   {
+                    "id": "3e4f5a6b-7c8d-9e0f-1a2b-3c4d5e6f7a8b",
+                    "leftValue": "={{ $json.respostaIA.controlAction }}",
+                    "rightValue": "CONFIRMAR_AGENDA_CONSULTOR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CONFIRMAR_AGENDA_CONSULTOR"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
                     "id": "2d9d6714-a064-4eb3-bd31-23d6c8301f00",
                     "leftValue": "={{ $json.respostaIA.controlAction }}",
                     "rightValue": "",
@@ -1147,6 +1172,33 @@
       ],
       "name": "Action: SOLICITAR-AGENDA-CONSULTOR",
       "id": "dc1f9b0c-5d98-43fa-8583-138aa94b1e40"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "COREAUTOCRM-ACTION-CONFIRMAR-AGENDA-CONSULTOR",
+          "mode": "list",
+          "cachedResultName": "COREAUTOCRM-ACTION-CONFIRMAR-AGENDA-CONSULTOR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        6176,
+        2816
+      ],
+      "name": "Action: CONFIRMAR-AGENDA-CONSULTOR",
+      "id": "f7a8b9c0-d1e2-3f4a-5b6c-7d8e9f0a1b2c"
     }
   ],
   "pinData": {
@@ -1455,6 +1507,13 @@
         ],
         [
           {
+            "node": "Action: CONFIRMAR-AGENDA-CONSULTOR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Action: Default",
             "type": "main",
             "index": 0
@@ -1661,6 +1720,17 @@
       ]
     },
     "Action: SOLICITAR-AGENDA-CONSULTOR": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: CONFIRMAR-AGENDA-CONSULTOR": {
       "main": [
         [
           {

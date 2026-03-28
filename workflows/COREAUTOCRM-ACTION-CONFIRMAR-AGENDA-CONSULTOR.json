@@ -1,0 +1,163 @@
+{
+  "name": "COREAUTOCRM-ACTION-CONFIRMAR-AGENDA-CONSULTOR",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "cac-node-001",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [0, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const actionData = $json.respostaIA?.actionData;\n\nif (!actionData) throw new Error('actionData ausente');\nif (!actionData.os_id) throw new Error('os_id obrigatório em actionData');\nif (!actionData.data_hora_agendamento) throw new Error('data_hora_agendamento obrigatório em actionData');\n\n// Normaliza a data para ISO 8601\nconst dt = new Date(actionData.data_hora_agendamento);\nif (isNaN(dt.getTime())) throw new Error('data_hora_agendamento inválida: ' + actionData.data_hora_agendamento);\nactionData.data_hora_agendamento = dt.toISOString();\n\n$input.item.json.respostaIA.actionData = actionData;\nreturn $input.item;"
+      },
+      "id": "cac-node-002",
+      "typeVersion": 2,
+      "name": "Validate & Sanitize",
+      "type": "n8n-nodes-base.code",
+      "position": [220, 240]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH updated AS (\n  UPDATE ordens_servico\n  SET\n    agendado_para  = $1::timestamptz,\n    consultor_id   = $2::uuid,\n    status         = 'aguardando_agenda'\n  WHERE id = $3::uuid\n  RETURNING id, cliente_id, veiculo_id, agendado_para\n)\nSELECT\n  u.id          AS os_id,\n  u.agendado_para,\n  p.nome        AS nome_cliente,\n  p.whatsapp    AS whatsapp_cliente,\n  v.modelo      AS modelo_veiculo,\n  v.placa       AS placa_veiculo\nFROM updated u\nJOIN pessoas  p ON p.id = u.cliente_id\nJOIN veiculos v ON v.id = u.veiculo_id",
+        "options": {
+          "queryReplacement": "={{ [\n  $('Validate & Sanitize').item.json.respostaIA.actionData.data_hora_agendamento,\n  $('Validate & Sanitize').item.json.pessoa.id,\n  $('Validate & Sanitize').item.json.respostaIA.actionData.os_id\n] }}"
+        }
+      },
+      "id": "cac-node-003",
+      "typeVersion": 2.6,
+      "name": "Atualizar OS",
+      "type": "n8n-nodes-base.postgres",
+      "position": [440, 240],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $json.os_id }}",
+            "pessoa_id": "={{ $('Validate & Sanitize').item.json.pessoa.id }}",
+            "tipo_evento": "comunicacao",
+            "descricao": "=Agenda confirmada pelo consultor {{ $('Validate & Sanitize').item.json.pessoa.nome }} para {{ $json.agendado_para }}",
+            "origem": "sistema",
+            "contexto_json": "={{ $('Validate & Sanitize').item.json.respostaIA }}"
+          },
+          "options": {}
+        }
+      },
+      "id": "cac-node-004",
+      "typeVersion": 2.6,
+      "name": "Registrar Evento",
+      "type": "n8n-nodes-base.postgres",
+      "position": [660, 240],
+      "credentials": {
+        "postgres": { "id": "77y5s6MheuLZSCpd", "name": "COREAUTOCRM" }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Validate & Sanitize').item.json.loja.config_json.evolutionapi.instanceName }}",
+        "remoteJid": "={{ $('Atualizar OS').item.json.whatsapp_cliente }}",
+        "messageText": "=Olá, {{ $('Atualizar OS').item.json.nome_cliente }}! 📅\n\nSua agenda na *{{ $('Validate & Sanitize').item.json.loja.nome }}* foi confirmada!\n\n🚗 Veículo: *{{ $('Atualizar OS').item.json.modelo_veiculo }}* (Placa {{ $('Atualizar OS').item.json.placa_veiculo }})\n📆 Data/Hora: *{{ $('Atualizar OS').item.json.agendado_para }}*\n\nTe esperamos! Qualquer dúvida, é só falar por aqui. 😊",
+        "options_message": {}
+      },
+      "id": "cac-node-005",
+      "typeVersion": 1,
+      "name": "Notificar Cliente",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "position": [880, 240],
+      "credentials": {
+        "evolutionApi": { "id": "OffPuCi6FSBEIiKv", "name": "Evolution account" }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return $('Start').item;"
+      },
+      "id": "cac-node-006",
+      "typeVersion": 2,
+      "name": "Retornar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [1100, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const originalContext = $('Validate & Sanitize').item.json;\nconst errorDetails = $input.item.json;\n\nconst errorResponse = {\n  ...originalContext,\n  error: true,\n  errorDetails\n};\n\nif (errorResponse.respostaIA) {\n  errorResponse.respostaIA.userMessage = '⚠️ *Erro Técnico*\\n\\nNão foi possível confirmar a agenda. Verifique os dados e tente novamente.';\n  errorResponse.respostaIA.actionData = {};\n}\n\nreturn { json: errorResponse };"
+      },
+      "id": "cac-node-007",
+      "typeVersion": 2,
+      "name": "Process Error",
+      "type": "n8n-nodes-base.code",
+      "position": [880, 460]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [{ "node": "Validate & Sanitize", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate & Sanitize": {
+      "main": [
+        [{ "node": "Atualizar OS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Atualizar OS": {
+      "main": [
+        [{ "node": "Registrar Evento", "type": "main", "index": 0 }],
+        [{ "node": "Process Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Registrar Evento": {
+      "main": [
+        [{ "node": "Notificar Cliente", "type": "main", "index": 0 }],
+        [{ "node": "Process Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notificar Cliente": {
+      "main": [
+        [{ "node": "Retornar Contexto", "type": "main", "index": 0 }],
+        [{ "node": "Process Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Error": {
+      "main": [
+        [{ "node": "Retornar Contexto", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "tags": []
+}
