@@ -81,7 +81,7 @@
         "resource": "messages-api",
         "instanceName": "={{ $('Validate & Sanitize').item.json.loja.config_json.evolutionapi.instanceName }}",
         "remoteJid": "={{ $('Atualizar OS').item.json.whatsapp_cliente }}",
-        "messageText": "=Olá, {{ $('Atualizar OS').item.json.nome_cliente }}! 📅\n\nSua agenda na *{{ $('Validate & Sanitize').item.json.loja.nome }}* foi confirmada!\n\n🚗 Veículo: *{{ $('Atualizar OS').item.json.modelo_veiculo }}* (Placa {{ $('Atualizar OS').item.json.placa_veiculo }})\n📆 Data/Hora: *{{ $('Atualizar OS').item.json.agendado_para }}*\n\nTe esperamos! Qualquer dúvida, é só falar por aqui. 😊",
+        "messageText": "={{ $('Validate & Sanitize').item.json.respostaIA.actionData.notificacao_cliente }}",
         "options_message": {}
       },
       "id": "cac-node-005",

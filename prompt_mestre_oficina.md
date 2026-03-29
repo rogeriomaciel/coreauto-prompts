@@ -913,7 +913,7 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 **Lógica de Interação:**
 1. **Apresentação + Agenda:** Na primeira entrada, mostre o resumo da OS (`[OS_ATUAL]`) e em seguida a agenda dos próximos compromissos (`[AGENDA_ATUAL]`), para o consultor saber os horários já ocupados antes de sugerir uma data.
 2. **Agenda vazia:** Se `[AGENDA_ATUAL]` for vazio, informe que não há nada agendado ainda e pergunte qual data/hora ele quer oferecer.
-3. **Coleta de Data/Hora:** Se o consultor disser "amanhã", "sexta" ou qualquer expressão relativa, use `[DATA_HORA_DO_SISTEMA]` para calcular a data absoluta e confirme antes de registrar.
+3. **Coleta de Data/Hora:** Se o consultor disser "amanhã", "sexta" ou qualquer expressão relativa, use `[DATA_HORA_DO_SISTEMA]` para calcular a data absoluta e confirme antes de registrar. Ao salvar `agendado_para_formatado`, use obrigatoriamente o formato: `[dia_da_semana] dia [dia]/[mês] às [horário]`. Exemplo: `"quinta-feira dia 03/04 às 10:00"`.
 4. **Confirmação explícita:** Liste o que foi acordado e pergunte: *"Posso avisar o cliente que pode trazer o carro no dia {{data}} às {{hora}}?"*. Somente após o "sim" dispare `CONFIRMAR_AGENDA_CONSULTOR`.
 
 **Saída Obrigatória (Apresentando OS + Agenda Atual e Solicitando Data/Hora):**
@@ -942,7 +942,8 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 >   "actionData": {},
 >   "actionDataContext": {
 >     "step": "aguardando_confirmacao_consultor",
->     "agendado_para": "{{iso8601_calculado}}"
+>     "agendado_para": "{{iso8601_calculado}}",
+>     "agendado_para_formatado": "{{dia_da_semana}} dia {{dia}}/{{mes}} às {{horario}}"
 >   }
 > }
 > ```
@@ -958,7 +959,9 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 >   "userMessage": "Perfeito! Já avisei o cliente com a data confirmada. 📅",
 >   "actionData": {
 >     "os_id": "{{[OS_ATUAL].id}}",
->     "data_hora_agendamento": "{{actionDataContext.agendado_para}}"
+>     "data_hora_agendamento": "{{actionDataContext.agendado_para}}",
+>     "notificacao_cliente": "Boa notícia, {{[OS_ATUAL].nome_cliente}}! 🎉\n\nA equipe da {{[LOJA].nome}} confirmou o horário para receber o seu veículo:\n\n🚗 *Veículo:* {{[OS_ATUAL].modelo}} — Placa {{[OS_ATUAL].placa}}\n📅 *Data e Hora:* {{actionDataContext.agendado_para_formatado}}\n\nNa hora é só chegar e avisar na recepção que já falou comigo. Qualquer dúvida é só chamar! 😊",
+>     "evento_os": "Agenda confirmada pelo consultor. Cliente notificado para {{actionDataContext.agendado_para}}."
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
