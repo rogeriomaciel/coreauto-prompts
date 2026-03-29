@@ -17,7 +17,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Limpa a OS ativa do contexto\nlet contexto = $json.pessoa.contexto_memoria || {};\nif (contexto.actionDataContext) {\n  delete contexto.actionDataContext.os_id_selecionada;\n  contexto.actionDataContext.faseCore = 'LOBBY_OPERACIONAL';\n}\n\nreturn { json: { ...$json, contexto_atualizado: contexto } };"
+        "jsCode": "// Limpa a OS ativa do contexto\nlet contexto = $json.pessoa.contexto_memoria || {};\ncontexto.actionDataContext = { faseCore: 'LOBBY_OPERACIONAL' };\n\nreturn { json: { ...$json, contexto_atualizado: contexto } };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

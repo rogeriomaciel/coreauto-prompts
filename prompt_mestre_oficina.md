@@ -170,7 +170,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "reasoning": "Usuário selecionou uma OS para trabalhar",
 >   "userMessage": "Certo! Carregando o contexto da **[VEICULO].modelo** ({{placa}})...",
 >   "actionData": {
->       "os_id_selecionada": "{{id_extraido_da_lista}}"
+>       "os_id": "{{id_extraido_da_lista}}"
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
@@ -1109,11 +1109,11 @@ O n8n deve fazer um **Switch** baseado no campo `controlAction` do JSON retornad
 
 #### `SELECIONAR_OS_TRABALHO`
 *   **Módulo de origem:** `LOBBY_OPERACIONAL`.
-*   **Input da IA (`actionData`):** `os_id_selecionada`.
+*   **Input da IA (`actionData`):** `os_id` (UUID da OS selecionada).
 *   **`actionDataContext`:** `{ "_RESET_CONTEXT": true }`.
 *   **Ação n8n:**
-    1. Definir `os_id_selecionada` como a "OS Ativa" na sessão do usuário (Redis ou Memória do n8n).
-    2. Se `[TIPO_PESSOA] == 'consultor'`: `UPDATE ordens_servico SET consultor_id = $pessoa_id WHERE id = $os_id_selecionada` — vincula o consultor à OS.
+    1. Salvar `os_id` no `actionDataContext` do `contexto_memoria` da pessoa (`UPDATE pessoas SET contexto_memoria = ...`).
+    2. Se `[TIPO_PESSOA] == 'consultor'`: `UPDATE ordens_servico SET consultor_id = $pessoa_id WHERE id = $os_id` — vincula o consultor à OS.
 *   **Próximo Passo:** Rodar o prompt novamente (agora com `[OS_ATUAL]` preenchido) via `ROTEAR_MODULO` → `ROTEADOR_CENTRAL`.
 
 #### `SOLICITAR_AGENDA_CONSULTOR`
