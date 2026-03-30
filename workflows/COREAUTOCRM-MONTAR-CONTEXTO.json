@@ -216,7 +216,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\nconst faseCore =  $json.pessoa.contexto_memoria?.actionDataContext?.faseCore || 'DEFAULT';\n\n$json.pessoa.contexto_memoria.faseCore = faseCore;\n\n\n\nreturn $input.item;"
+        "jsCode": "let faseCore = $json.pessoa.contexto_memoria?.actionDataContext?.faseCore || 'DEFAULT';\nconst osId = $json.pessoa.contexto_memoria?.actionDataContext?.os_id;\n\n// Segurança: Se a fase exige uma OS ativa mas o os_id sumiu, volta para o Roteador (DEFAULT)\nconst fasesQueExigemOS = ['RECEPCAO_VEICULO', 'CONFIRMACAO_AGENDA', 'DIAGNOSTICO_MECANICO', 'EXECUCAO_SERVICO', 'CRIACAO_REVISAO_ORCAMENTO', 'CONTROLE_QUALIDADE', 'ENTREGA_PAGAMENTO'];\n\nif (fasesQueExigemOS.includes(faseCore) && !osId) {\n  faseCore = 'DEFAULT';\n}\n\n$json.pessoa.contexto_memoria.faseCore = faseCore;\n\nreturn $input.item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
