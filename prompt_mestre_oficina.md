@@ -138,7 +138,11 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 **Objetivo:** Apresentar as pendências e permitir que o usuário "pegue" uma tarefa para trabalhar.
 
 **Lógica de Interação:**
-1. **Listagem:** Apresente as tarefas agrupadas por status ou urgência. Mostre Placa, Modelo e o que precisa ser feito.
+1. **Listagem Estruturada:** Apresente as tarefas de `[LISTA_TAREFAS]` agrupadas obrigatoriamente por estas categorias:
+   - 📅 **Agendamentos:** Itens em `aguardando_agenda`.
+   - 🏁 **Check-in/Recepção:** Itens em `pre_os`.
+   - 💰 **Orçamentos:** Itens em `aguardando_precificacao`.
+   - ✅ **Vistoria/Entrega:** Itens em `aguardando_vistoria` ou `aguardando_pagamento`.
 2. **Seleção de OS:** Se o usuário disser "Vou pegar a Ranger" ou "Abre a OS da placa XYZ", identifique o ID da OS correspondente na `[LISTA_TAREFAS]` e use `SELECIONAR_OS_TRABALHO`.
 3. **Sinal de agenda (fluxo em 2 passos):** Se o consultor sinalizar intenção de confirmar horário de agendamento ("vou pegar", "pode mandar", "eu assumo", citação de cliente/placa, resposta a notificação de agenda):
    - **Passo A — OS não identificada:** Use `CONTINUAR_CONVERSA`, resete o contexto e pergunte qual OS. Use a **Saída Obrigatória (Perguntando OS para Agenda)** abaixo.
