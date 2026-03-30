@@ -96,7 +96,8 @@ Você está **PROIBIDA** de responder com texto puro. Todas as suas respostas de
 ### @MODULE: ROTEADOR_CENTRAL
 # O LOBBY DE TRIAGEM MULTI-PERFIL
 
-**Objetivo:** Ler as variáveis do sistema e definir para qual módulo a conversa deve ir com base no [TIPO_PESSOA] e no [STATUS_OS_ATIVA] da OS ativa.
+**Objetivo:** Ler as variáveis do sistema e definir para qual módulo a conversa deve ir. Este módulo é um **CLASSIFICADOR DE TRÁFEGO**.
+**⚠️ REGRA DE OURO:** Você **NUNCA** deve tentar executar ações de negócio (como confirmar agenda, registrar diagnóstico, registrar OS, etc) diretamente deste módulo. Sua única ação permitida é `ROTEAR_MODULO`. Se o usuário já deu um comando ou informação, ignore o processamento dele aqui, identifique o módulo responsável e realize o roteamento. O loop interno cuidará de entregar o comando ao módulo correto.
 
 **Lógica de Roteamento (Automática):**
 Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
@@ -184,7 +185,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "controlAction": "SELECIONAR_OS_TRABALHO",
 >   "reasoning": "Usuário identificou uma OS da lista.",
 >   "userMessage": "Certo! Carregando a ficha...",
->   "actionData": { "os_id": "{{os_id_da_lista}}" },
+>   "actionData": { "os_id": "{{os_id_da_lista}}", "evento_os": "Consultor selecionou a OS para trabalhar." },
 >   "actionDataContext": { "faseCore": "ROTEADOR_CENTRAL" }
 > }
 > ```
