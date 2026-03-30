@@ -1129,7 +1129,7 @@ O n8n deve fazer um **Switch** baseado no campo `controlAction` do JSON retornad
     2. `INSERT` na tabela `ordens_servico` com status `'aguardando_agenda'`.
     3. `INSERT` na tabela `os_eventos` com o conteúdo de `evento_os`.
     4. Salvar `actionDataContext` no `contexto_memoria` do cliente para persistir o rascunho.
-*   **Notificação:** Enviar `notificacao_consultor` para o WhatsApp dos Consultores pedindo confirmação de data/horário.
+*   **Notificação:** Enviar `notificacao_consultor` para o WhatsApp dos Consultores pedindo confirmação de data/horário. **CRÍTICO:** O n8n deve anexar este texto ao histórico de `conversas_recentes` de cada consultor no banco de dados. Isso permite que a IA tenha contexto quando o consultor responder (ex: "vou pegar").
 *   **Próximo Passo:** Aguardar resposta do consultor. Quando o consultor informar a data/hora, reinjetar no contexto do cliente e rodar o prompt com `[STATUS_OS_ATIVA] == 'aguardando_agenda'` para que a IA dispare `REGISTRAR_PRE_OS`.
 
 #### `CONFIRMAR_AGENDA_CONSULTOR`
