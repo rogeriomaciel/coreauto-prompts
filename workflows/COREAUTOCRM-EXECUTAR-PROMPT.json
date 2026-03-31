@@ -232,21 +232,12 @@
           },
           "conditions": [
             {
-              "id": "95ee1c65-3302-49e4-aae9-c4a3972d6ffe",
-              "leftValue": "={{ $json.respostaIA.currentState }}",
-              "rightValue": "ROTEADOR_CENTRAL",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            },
-            {
               "id": "671f24bf-5f8e-4f69-bd17-4e042dcf7113",
-              "leftValue": "={{ $json.respostaIA.controlAction }}",
-              "rightValue": "ROTEAR_MODULO",
+              "leftValue": "={{ ['ROTEAR_MODULO', 'SELECIONAR_OS_TRABALHO'].includes($json.respostaIA.controlAction) }}",
+              "rightValue": "true",
               "operator": {
-                "type": "string",
-                "operation": "equals"
+                "type": "boolean",
+                "operation": "true"
               }
             }
           ],
