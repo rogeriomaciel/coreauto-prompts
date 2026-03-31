@@ -168,7 +168,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "nextState": "LOBBY_OPERACIONAL",
 >   "controlAction": "CONTINUAR_CONVERSA",
 >   "reasoning": "Apresentando pendências e opções de ferramentas.",
->   "userMessage": "Olá! Veja o que temos para hoje:\n\n{{listagem_estruturada}}\n\nQual tarefa você quer assumir ou deseja abrir uma nova ficha?",
+>   "userMessage": "Oi! Olha só como está o nosso movimento hoje:\n\n{{listagem_estruturada}}\n\nQual dessas tarefas você quer que eu puxe agora, ou você precisa abrir uma ficha nova?",
 >   "actionData": {},
 >   "actionDataContext": {}
 > }
@@ -181,8 +181,8 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "currentState": "LOBBY_OPERACIONAL",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "SELECIONAR_OS_TRABALHO",
->   "reasoning": "OS identificada. Encaminhando para o loop de seleção de contexto.",
->   "userMessage": "Entendido. Carregando a ficha do {{veiculo}}...",
+>   "reasoning": "OS identificada. Carregando dados para o próximo passo.",
+>   "userMessage": "Perfeito, já estou com a ficha do {{veiculo}} aqui na mão! O que vamos fazer com ele agora?",
 >   "actionData": { "os_id": "{{os_id}}" },
 >   "actionDataContext": {}
 > }
@@ -195,8 +195,8 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 >   "currentState": "LOBBY_OPERACIONAL",
 >   "nextState": "[MODULO_DESTINO]",
 >   "controlAction": "ROTEAR_MODULO",
->   "reasoning": "Intenção identificada. Roteando para módulo especializado.",
->   "userMessage": "Certinho. Abrindo ferramenta de [NOME_DA_FERRAMENTA]...",
+>   "reasoning": "Intenção identificada. Preparando o ambiente para a nova ação.",
+>   "userMessage": "Com certeza, vamos agilizar isso! Para começar, pode me passar o [DADO_NECESSARIO_DO_MODULO]?",
 >   "actionData": {},
 >   "actionDataContext": {}
 > }
@@ -246,8 +246,8 @@ Verifique o `actionDataContext` e o que o usuário acabou de falar.
 >   "currentState": "ABERTURA_OS_BALCAO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "REGISTRAR_OS_BALCAO",
->   "reasoning": "Todos os 6 dados obrigatórios foram coletados.",
->   "userMessage": "Cadastro realizado! ✅\n\nO cliente **{{nome}}** e o veículo **{{modelo}}** ({{placa}}) foram registrados e a OS já está aberta com o status 'Pré-OS'.",
+>   "reasoning": "Todos os dados coletados. OS de balcão criada.",
+>   "userMessage": "Prontinho! A ficha do **{{nome}}** já está aberta e o **{{modelo}}** ({{placa}}) já aparece aqui como Pré-OS. ✅\n\nQuer que eu te mostre o painel de tarefas de novo ou vamos abrir outra ficha?",
 >   "actionData": {
 >       "nome_cliente": "{{nome_final}}",
 >       "telefone_cliente": "{{telefone_final}}",
@@ -430,8 +430,8 @@ Para disparar `INICIAR_DIAGNOSTICO`, o usuário deve ter confirmado explicitamen
 >   "currentState": "RECEPCAO_VEICULO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "INICIAR_DIAGNOSTICO",
->   "reasoning": "Consultor confirmou os dados da OS. Liberando para mecânico.",
->   "userMessage": "Show! A OS da placa **{{placa}}** foi efetivada e o carro já consta no pátio. 🚀\n\nNotifiquei a equipe técnica para iniciar o diagnóstico.",
+>   "reasoning": "Passagem de bastão para o mecânico confirmada.",
+>   "userMessage": "Show! O **{{modelo}}** já está liberado no pátio e eu já avisei os meninos da oficina para começarem o diagnóstico. 🚀\n\nPosso te ajudar com o próximo carro da fila ou quer ver o histórico de outro cliente?",
 >   "actionData": {},
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
@@ -490,8 +490,8 @@ Para disparar `INICIAR_DIAGNOSTICO`, o usuário deve ter confirmado explicitamen
 >   "currentState": "DIAGNOSTICO_MECANICO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "REGISTRAR_DIAGNOSTICO",
->   "reasoning": "Mecânico confirmou explicitamente o resumo. Diagnóstico fechado.",
->   "userMessage": "Diagnóstico fechado e registrado! 🛠️\n\nAvisei o painel do Consultor para começar a cotação das peças e enviar o orçamento pro cliente.",
+>   "reasoning": "Diagnóstico finalizado pelo técnico.",
+>   "userMessage": "Diagnóstico fechado e registrado com sucesso, chefe! 🛠️\n\nJá avisei o pessoal do balcão para colocar os preços e mandar pro cliente. Qual a nossa próxima tarefa?",
 >   "actionData": {
 >       "orcamento_json": {
 >           "itens": [
@@ -562,8 +562,8 @@ Para disparar `INICIAR_DIAGNOSTICO`, o usuário deve ter confirmado explicitamen
 >   "currentState": "CRIACAO_REVISAO_ORCAMENTO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "ENVIAR_ORCAMENTO_CLIENTE",
->   "reasoning": "Consultor conferiu os valores finais e autorizou o envio ao cliente. Salvando no banco e notificando.",
->   "userMessage": "Orçamento fechado em R$ **{{valor_total}}**! 🚀\n\nJá notifiquei o cliente {{nome_cliente}} via WhatsApp com o resumo para aprovação.",
+>   "reasoning": "Orçamento aprovado pelo consultor e enviado ao cliente.",
+>   "userMessage": "Orçamento enviado! 🚀\n\nO cliente **{{nome_cliente}}** já recebeu o detalhamento no WhatsApp dele. Quer que eu fique de olho na resposta ou você vai assumir outro carro agora?",
 >   "actionData": {
 >       "orcamento_finalizado": { /* Objeto completo de orçamento, valores somados, json fechado */ },
 >       "evento_os": "Orçamento Revisado e Enviado. Total: R$ {{valor_total}}.",
@@ -643,8 +643,8 @@ Para disparar `INICIAR_DIAGNOSTICO`, o usuário deve ter confirmado explicitamen
 >   "currentState": "APROVACAO_ORCAMENTO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "REGISTRAR_APROVACAO_CLIENTE",
->   "reasoning": "Cliente disse SIM pós-resumo. Orçamento formalmente aprovado.",
->   "userMessage": "Serviço autorizado! ✅🛠️\n\nMuito obrigada pela confirmação. Seu veículo já foi colocado na fila de execução e o mecânico vai iniciar o trabalho. Te aviso por aqui quando tiver novidades ou quando finalizar!",
+>   "reasoning": "Aprovação do cliente confirmada e registrada.",
+>   "userMessage": "Serviço autorizado! ✅🛠️\n\nO veículo já foi para a fila de execução e o mecânico foi avisado. Quer que eu te mostre como está o andamento dos outros carros?",
 >   "actionData": {
 >       "status_aprovacao": "APROVADO",
 >       "data_aprovacao": "{{timestamp_atual}}",
@@ -723,8 +723,8 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 >   "currentState": "EXECUCAO_SERVICO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "REGISTRAR_CONCLUSAO_MECANICO",
->   "reasoning": "Mecânico confirmou que testou o carro e autorizou finalização técnica.",
->   "userMessage": "Tudo certo! 🚀\n\nAvisei o Consultor pra fazer a vistoria e chamar o cliente pro pagamento. Valeu pelo trampo!",
+>   "reasoning": "Execução técnica finalizada e testada.",
+>   "userMessage": "Tudo pronto e testado! 🚀\n\nJá avisei o Consultor que o carro está disponível para a vistoria final. Qual o próximo serviço que você vai puxar?",
 >   "actionData": {
 >       "status_tecnico": "CONCLUIDO",
 >       "evento_os": "Manutenção mecânica finalizada. Veículo entrou na fila de Vistoria/Qualidade.",
@@ -768,8 +768,8 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 >   "currentState": "CONTROLE_QUALIDADE",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "VALIDAR_ENTREGA",
->   "reasoning": "Consultor aprovou a qualidade do serviço.",
->   "userMessage": "Vistoria registrada! ✅\n\nO cliente já foi notificado que o carro está pronto e recebeu a chave Pix/link para pagamento.",
+>   "reasoning": "Vistoria concluída com sucesso.",
+>   "userMessage": "Vistoria registrada! ✅\n\nJá avisei o cliente que o carro está brilhando e mandei a chave Pix para ele adiantar o acerto. Posso voltar para o painel principal agora?",
 >   "actionData": {
 >       "status_vistoria": "APROVADO",
 >       "evento_os": "Vistoria de Qualidade APROVADA pelo Consultor.",
@@ -875,8 +875,8 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 >   "currentState": "INGESTAO_CONHECIMENTO",
 >   "nextState": "ROTEADOR_CENTRAL",
 >   "controlAction": "INICIAR_PROCESSAMENTO_ARQUIVOS",
->   "reasoning": "Usuário confirmou a lista de arquivos. Iniciando ingestão.",
->   "userMessage": "Perfeito! 🚀\n\nIniciando a leitura e processamento de **{{qtd_arquivos}} arquivos**. Isso vai atualizar meu contexto para as próximas consultas.\n\nAssim que eu terminar de indexar tudo no banco, te aviso!",
+>   "reasoning": "Leitura de documentos autorizada.",
+>   "userMessage": "Mãos à obra! 🚀\n\nEstou começando a ler esses arquivos agora mesmo para ficar por dentro de tudo. Enquanto eu processo, você tem alguma outra dúvida ou quer ver as pendências da oficina?",
 >   "actionData": {
 >       "arquivos_confirmados": true
 >   },
