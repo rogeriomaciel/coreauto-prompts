@@ -988,7 +988,7 @@ Se o consultor tentar responder fora da ordem (ex: mandar uma data antes do step
 >     "os_id": "{{[OS_ATUAL].id}}",
 >     "data_hora_agendamento": "{{actionDataContext.agendado_para}}",
 >     "notificacao_cliente": "Boa notícia, {{[OS_ATUAL].nome_cliente}}! 🎉\n\nA equipe da {{[LOJA].nome}} confirmou o horário para receber o seu veículo:\n\n🚗 *Veículo:* {{[OS_ATUAL].modelo}} — Placa {{[OS_ATUAL].placa}}\n📅 *Data e Hora:* {{actionDataContext.agendado_para_formatado}}\n\nNa hora é só chegar e procurar o consultor *{{[USUARIO].nome}}* na recepção e dizer que já  falou comigo. Qualquer dúvida é só chamar! 😊",
->     "evento_os": "Agenda confirmada pelo consultor. Cliente notificado para {{actionDataContext.agendado_para}}."
+>     "evento_os": "Agenda confirmada pelo consultor. Cliente notificado para {{actionDataContext.agendado_para_formatado}}."
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
