@@ -454,6 +454,31 @@
                 },
                 "conditions": [
                   {
+                    "id": "d8e9f0a1-b2c3-d4e5-f6a7-b8c9d0e1f2a3",
+                    "leftValue": "={{ $json.respostaIA.controlAction }}",
+                    "rightValue": "REENVIAR_NOTIFICACAO_AGENDA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REENVIAR_NOTIFICACAO_AGENDA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
                     "id": "2d9d6714-a064-4eb3-bd31-23d6c8301f00",
                     "leftValue": "={{ $json.respostaIA.controlAction }}",
                     "rightValue": "",
@@ -1202,6 +1227,33 @@
     },
     {
       "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        6176,
+        3056
+      ],
+      "name": "Action: REENVIAR-NOTIFICACAO-AGENDA",
+      "id": "b8c9d0e1-f2a3-b4c5-d6e7-f8a9b0c1d2e3"
+    },
+    {
+      "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const ad = $json.respostaIA?.actionData;\nif (!ad) return $input.item;\n\nconst alias = {\n  os_id:                  ['id_os', 'ordem_servico_id', 'os_selecionada', 'os_id_selecionada'],\n  data_hora_agendamento:  ['agendado_para', 'data_agendamento', 'data_hora', 'horario', 'data_confirmada', 'data_hora_confirmada', 'horario_agendamento'],\n  placa_veiculo:          ['placa', 'placa_carro', 'placa_do_veiculo'],\n  modelo_veiculo:         ['modelo', 'modelo_carro', 'modelo_do_veiculo'],\n  marca_veiculo:          ['marca', 'marca_carro', 'marca_do_veiculo'],\n  descricao_problema:     ['problema', 'sintoma', 'descricao', 'relato', 'descricao_sintoma'],\n  nome_cliente:           ['nome', 'cliente', 'nome_do_cliente'],\n  telefone_cliente:       ['telefone', 'whatsapp', 'phone', 'celular', 'contato'],\n  descricao_progresso:    ['progresso', 'atualizacao', 'update', 'descricao_atualizacao'],\n  observacoes_recepcao:   ['observacao', 'nota', 'anotacao', 'observacao_recepcao'],\n  notificacao_consultor:  ['notificacao', 'mensagem_consultor', 'msg_consultor'],\n  evento_os:              ['evento', 'log', 'registro', 'log_evento']\n};\n\nfor (const [canonical, variants] of Object.entries(alias)) {\n  if (!(canonical in ad)) {\n    for (const v of variants) {\n      if (v in ad) {\n        ad[canonical] = ad[v];\n        delete ad[v];\n        break;\n      }\n    }\n  }\n}\n\n$input.item.json.respostaIA.actionData = ad;\nreturn $input.item;"
       },
@@ -1536,6 +1588,13 @@
         ],
         [
           {
+            "node": "Action: REENVIAR-NOTIFICACAO-AGENDA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Action: Default",
             "type": "main",
             "index": 0
@@ -1698,6 +1757,17 @@
       ]
     },
     "Action: Continuar Conversa": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: REENVIAR-NOTIFICACAO-AGENDA": {
       "main": [
         [
           {
