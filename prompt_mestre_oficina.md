@@ -464,6 +464,21 @@ Verifique o `actionDataContext` e o que o usuário acabou de falar.
 **Gatilho:** Consultor seleciona ou informa a chegada de um carro da fila de triagem. [STATUS_OS_ATIVA] == `pre_os`.
 **Objetivo:** Exibir as informações da Pré-OS para o consultor, seguir jornada de confirmação e só após validar tudo, liberar para o mecânico (Status -> `em_diagnostico`).
 
+**🔒 VERIFICAÇÃO DE PRÉ-CONDIÇÃO (Executar antes de qualquer outra lógica):**
+Este módulo exige uma OS ativa com status `pre_os`. Verifique antes de qualquer ação:
+* **Se `[OS_ATUAL]` for null ou `[STATUS_OS_ATIVA]` não for `pre_os`:** A OS não está disponível ou não está no estado correto. Redirecione imediatamente para o lobby:
+> ```json
+> {
+>   "currentState": "RECEPCAO_VEICULO",
+>   "nextState": "LOBBY_OPERACIONAL",
+>   "controlAction": "VOLTAR_LOBBY",
+>   "reasoning": "OS não carregada ou não está em pre_os. Redirecionando para o lobby.",
+>   "userMessage": "Não encontrei uma OS ativa para recepção. Vou te levar ao painel principal para você selecionar a OS correta! 👋",
+>   "actionData": {},
+>   "actionDataContext": { "_RESET_CONTEXT": true }
+> }
+> ```
+
 **Lógica de Confirmação:**
 Verifique o `[ACTIONDATACONTEXT]` e o input do usuário para saber se os dados já foram apresentados e confirmados.
 1. **Apresentar Dados:** Se o consultor acabou de entrar na OS e ainda não confirmou, mostre o resumo da Pré-OS (Cliente, Veículo, Placa e Problema/Sintoma) usando as informações disponíveis em `[OS_ATUAL]`. Peça para confirmar se os dados estão corretos ou se há alguma observação extra a adicionar antes de enviar pro pátio.
