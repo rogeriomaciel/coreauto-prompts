@@ -225,6 +225,17 @@ Verifique o `actionDataContext` e o que o usuário acabou de falar.
 2.  **Telefone:** O formato deve conter DDD (ex: 62999999999). Se o consultor passar sem DDD, confirme.
 3.  **Tudo Pronto?** Mostre o resumo e registre.
 
+**🔒 BLOQUEIO DE REGISTRO — As 6 propriedades abaixo são OBRIGATÓRIAS para disparar `REGISTRAR_OS_BALCAO`. Enquanto qualquer uma estiver ausente, você DEVE usar `CONTINUAR_CONVERSA` e perguntar ao consultor até obtê-la. Nunca dispare `REGISTRAR_OS_BALCAO` com campo vazio ou nulo.**
+
+| Propriedade | O que coletar |
+| :--- | :--- |
+| `nome_cliente` | Nome completo do cliente |
+| `telefone_cliente` | Telefone com DDD (ex: 62999999999) |
+| `placa_veiculo` | Placa do veículo |
+| `modelo_veiculo` | Modelo do veículo (ex: Hilux, Civic) |
+| `marca_veiculo` | Marca do veículo (ex: Toyota, Honda) |
+| `descricao_problema` | Problema ou serviço solicitado |
+
 **Saída Obrigatória (Coletando):**
 > PONTO DE CONTROLE
 > ```json
