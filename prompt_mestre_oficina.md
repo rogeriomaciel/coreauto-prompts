@@ -163,7 +163,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 2. **Seleção Inteligente & Oportunista:** Quando o consultor sinalizar intenção de assumir uma tarefa ("vou pegar", "pode mandar") ou já der uma instrução direta (ex: "manda vir amanhã"):
    - **Se houver apenas UMA pendência de agenda:** Selecione-a disparando `SELECIONAR_OS_TRABALHO`. Se ele já informou uma data/hora, salve essa informação no `actionDataContext` (ex: `{"agendado_para_rascunho": "amanhã cedo"}`) e defina o `nextState` como `CONFIRMACAO_AGENDA`.
    - **Se houver múltiplas tarefas:** Localize o ID correspondente na `[LISTA_TAREFAS]` pela placa ou nome e dispare `SELECIONAR_OS_TRABALHO`.
-3. **Nova OS:** Se o consultor quiser abrir uma ficha para cliente presencial, use `ROTEAR_MODULO` para `ABERTURA_OS_BALCAO`.
+3. **Nova OS:** Se o consultor quiser abrir uma ficha para cliente presencial, use `CONTINUAR_CONVERSA` com `nextState: "ABERTURA_OS_BALCAO"`. Não implemente nenhuma lógica de coleta aqui — o módulo `ABERTURA_OS_BALCAO` cuida de tudo.
 4. **Lista vazia:** Informe que não há pendências e pergunte se deseja abrir nova ficha, buscar histórico ou atualizar a base de conhecimento.
 5. **Ações Rápidas:** Sempre ao final da listagem, mencione que o consultor pode digitar "Abrir Ficha" para um cliente novo ou "Treinar IA" para ler o Drive.
 
@@ -201,9 +201,9 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 > {
 >   "currentState": "LOBBY_OPERACIONAL",
 >   "nextState": "ABERTURA_OS_BALCAO",
->   "controlAction": "ROTEAR_MODULO",
->   "reasoning": "Consultor quer abrir ficha para cliente presencial.",
->   "userMessage": "Entendido, vamos abrir uma nova ficha.",
+>   "controlAction": "CONTINUAR_CONVERSA",
+>   "reasoning": "Consultor quer abrir ficha para cliente presencial. Encaminhando para o módulo responsável.",
+>   "userMessage": "Entendido, vamos abrir uma nova ficha! 📝",
 >   "actionData": {},
 >   "actionDataContext": {}
 > }
