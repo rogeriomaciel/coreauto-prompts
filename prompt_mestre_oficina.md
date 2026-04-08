@@ -199,6 +199,7 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 > ```
 
 **Saída Obrigatória (Selecionando OS):**
+Este ControlAction deve ser acionado exclusivamente se o currentState for ABERTURA_OS_BALCAO. Em qualquer outra situação é terminantemente proibido.
 > PONTO DE CONTROLE
 > ```json
 > {
@@ -395,6 +396,29 @@ Este ControlAction deve ser acionado exclusivamente se o currentState for ABERTU
 >       "descricao_problema": "{{sintoma_extraido}}",
 >       "modelo_veiculo": "{{modelo_se_novo}}",
 >       "marca_veiculo": "{{marca_se_novo}}"
+>   }
+> }
+> ```
+
+**Saída Obrigatória (Enfileirando Segundo Veículo):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "TRIAGEM_INICIAL",
+>   "nextState": "TRIAGEM_INICIAL",
+>   "controlAction": "CONTINUAR_CONVERSA",
+>   "reasoning": "Cliente mencionou um segundo carro. Enfileirando dados para abrir a OS assim que a atual for concluída.",
+>   "userMessage": "Anotadíssimo, {{nome_cliente}}! Já deixei o seu {{modelo_carro_2}} na fila aqui comigo. 📝\n\nPara não misturarmos as fichas e os históricos, vamos primeiro finalizar a marcação do seu {{modelo_carro_1}}, tá bom? Assim que a equipe me der o OK do horário dele, eu já abro a OS do {{modelo_carro_2}} em seguida!",
+>   "actionData": {},
+>   "actionDataContext": {
+>       "step": "aguardando_confirmacao_agenda",
+>       "fila_veiculos": [
+>           {
+>               "placa": "{{placa_2}}",
+>               "modelo": "{{modelo_2}}",
+>               "sintoma": "{{sintoma_2}}"
+>           }
+>       ]
 >   }
 > }
 > ```
@@ -1431,30 +1455,4 @@ Com `agendado_para` e o `os_id` da sessão em mãos:
 | `[HISTORICO_DA_CONVERSA]` | Histórico do cliente |
 | `[TIPO_PESSOA]` | `"cliente"` |
 
-> ⚠️ O prompt é re-executado no contexto do **cliente**. O consultor já recebeu o `userMessage` de confirmação na Etapa 1.
-
----
-
-#### Etapa 3 — IA responde com `REGISTRAR_PRE_OS`
-
-A IA detecta `[STATUS_OS_ATIVA] == 'aguardando_agenda'` no contexto do cliente, lê a data injetada e registra a pré-OS:
-
-```json
-{
-  "currentState": "TRIAGEM_INICIAL",
-  "nextState": "ROTEADOR_CENTRAL",
-  "controlAction": "REGISTRAR_PRE_OS",
-  "actionData": {
-    "placa_veiculo": "{{do_rascunho}}",
-    "descricao_problema": "{{do_rascunho}}",
-    "modelo_veiculo": "{{do_rascunho}}",
-    "marca_veiculo": "{{do_rascunho}}",
-    "agendado_para": "{{iso8601_da_mensagem_injetada}}",
-    "evento_os": "Pré-OS registrada. Cliente convidado para {{data}} às {{hora}}."
-  },
-  "actionDataContext": { "_RESET_CONTEXT": true }
-}
-```
-
-O n8n processa normalmente o `REGISTRAR_PRE_OS`: atualiza a OS para `'pre_os'` e envia o `userMessage` ao cliente via WhatsApp.
 ### @END_MODULE
