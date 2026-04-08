@@ -28,8 +28,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "sw-rule-001",
-                    "leftValue": "={{ $json.pessoa.contexto_memoria.faseCore }}",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
                     "rightValue": "LOBBY_OPERACIONAL",
                     "operator": {
                       "type": "string",
@@ -52,56 +51,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "sw-rule-002",
-                    "leftValue": "={{ $json.pessoa.contexto_memoria.faseCore }}",
-                    "rightValue": "TRIAGEM_INICIAL",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "TRIAGEM_INICIAL"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 3
-                },
-                "conditions": [
-                  {
-                    "id": "sw-rule-003",
-                    "leftValue": "={{ ['RECEPCAO_VEICULO', 'DIAGNOSTICO_MECANICO', 'EXECUCAO_SERVICO', 'CRIACAO_REVISAO_ORCAMENTO', 'APROVACAO_ORCAMENTO', 'CONTROLE_QUALIDADE', 'ENTREGA_PAGAMENTO'].includes($json.pessoa.contexto_memoria.faseCore) }}",
-                    "rightValue": "true",
-                    "operator": {
-                      "type": "boolean",
-                      "operation": "true"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "CONTEXTO_OS_VEICULO"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 3
-                },
-                "conditions": [
-                  {
-                    "id": "sw-rule-004",
-                    "leftValue": "={{ $json.pessoa.contexto_memoria.faseCore }}",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
                     "rightValue": "CONFIRMACAO_AGENDA",
                     "operator": {
                       "type": "string",
@@ -124,8 +74,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "sw-rule-007",
-                    "leftValue": "={{ $json.pessoa.contexto_memoria.faseCore }}",
+                    "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}",
                     "rightValue": "",
                     "operator": {
                       "type": "string",
@@ -140,17 +89,179 @@
               "outputKey": "DEFAULT"
             }
           ]
+        }
+      },
+      "typeVersion": 3.4,
+      "name": "Switch Consultor",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        4450,
+        2000
+      ],
+      "id": "switch-consultor"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pessoa.tipo }}",
+                    "rightValue": "consultor",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "consultor"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pessoa.tipo }}",
+                    "rightValue": "mecanico",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mecanico"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pessoa.tipo }}",
+                    "rightValue": "cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cliente"
+            }
+          ]
         },
         "options": {}
       },
       "typeVersion": 3.4,
-      "name": "Switch",
+      "name": "Switch Tipo Pessoa",
       "type": "n8n-nodes-base.switch",
       "position": [
-        4208,
-        2352
+        4200,
+        2400
       ],
-      "id": "752ccde2-ae8c-43a3-bdef-f58ff3e4efd6"
+      "id": "switch-tipo-pessoa"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [ { "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}", "rightValue": "LOBBY_OPERACIONAL", "operator": { "type": "string", "operation": "equals" } } ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOBBY_OPERACIONAL"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [ { "leftValue": "={{ ['DIAGNOSTICO_MECANICO', 'EXECUCAO_SERVICO'].includes($json.pessoa.contexto_memoria.actionDataContext.faseCore) }}", "rightValue": "true", "operator": { "type": "boolean", "operation": "true" } } ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CONTEXTO_OS"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [ { "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}", "rightValue": "", "operator": { "type": "string", "operation": "notEmpty", "singleValue": true } } ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DEFAULT"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4,
+      "name": "Switch Mecanico",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        4450,
+        2400
+      ],
+      "id": "switch-mecanico"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [ { "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}", "rightValue": "TRIAGEM_INICIAL", "operator": { "type": "string", "operation": "equals" } } ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TRIAGEM_INICIAL"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                "conditions": [ { "leftValue": "={{ $json.pessoa.contexto_memoria.actionDataContext.faseCore }}", "rightValue": "", "operator": { "type": "string", "operation": "notEmpty", "singleValue": true } } ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DEFAULT"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4,
+      "name": "Switch Cliente",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        4450,
+        2800
+      ],
+      "id": "switch-cliente"
     },
     {
       "parameters": {
@@ -161,25 +272,25 @@
       "name": "Resposta",
       "type": "n8n-nodes-base.code",
       "position": [
-        5328,
+        5600,
         2400
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT COALESCE((SELECT json_agg(json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'agendado_para',os.agendado_para,'data_entrada',os.data_entrada,'valor_total',os.valor_total,'nome_cliente',p.nome,'whatsapp_cliente',p.whatsapp,'placa',v.placa,'modelo',v.modelo,'marca',v.marca) ORDER BY os.data_entrada ASC) FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id JOIN veiculos v ON v.id=os.veiculo_id WHERE os.loja_id=$1 AND os.status NOT IN ('finalizado','cancelado')),'[]'::json) AS lista_tarefas",
+        "query": "SELECT COALESCE((SELECT json_agg(json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'agendado_para',os.agendado_para,'data_entrada',os.data_entrada,'valor_total',os.valor_total,'nome_cliente',p.nome,'whatsapp_cliente',p.whatsapp,'placa',v.placa,'modelo',v.modelo,'marca',v.marca) ORDER BY os.data_entrada ASC) FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id JOIN veiculos v ON v.id=os.veiculo_id WHERE os.loja_id=$1 AND os.status IN ('aguardando_agenda', 'pre_os', 'aguardando_precificacao', 'aguardando_vistoria', 'aguardando_pagamento')),'[]'::json) AS lista_tarefas",
         "options": {
           "queryReplacement": "={{ $('Validate').item.json.loja.id }}"
         }
       },
       "id": "e8b8f4ad-1a00-4df2-b272-4f8231c9f27f",
       "typeVersion": 2.6,
-      "name": "Lobby: Lista Tarefas",
+      "name": "Lobby: Lista Tarefas Consultor",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4480,
-        2032
+        4750,
+        1800
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -192,21 +303,21 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const input = $('Start').item.json;\nconst lista = $('Lobby: Lista Tarefas').item.json.lista_tarefas || [];\ninput.contexto = {\n  STATUS_OS_ATIVA: null,\n  OS_ATUAL: null,\n  VEICULO: null,\n  LISTA_TAREFAS: lista,\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\n$input.item.json = input;\nreturn $input.item;"
+        "jsCode": "const input = $('Start').item.json;\nconst lista = $('Lobby: Lista Tarefas Consultor').item.json.lista_tarefas || [];\ninput.contexto = {\n  STATUS_OS_ATIVA: null,\n  OS_ATUAL: null,\n  VEICULO: null,\n  LISTA_TAREFAS: lista,\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\n$input.item.json = input;\nreturn $input.item;"
       },
       "id": "3435eb7c-7292-4613-b156-63f998bbcf6d",
       "typeVersion": 2,
       "name": "Lobby: Montar Contexto",
       "type": "n8n-nodes-base.code",
       "position": [
-        5104,
-        2032
+        5000,
+        1800
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'orcamento_json',os.orcamento_json,'valor_total',os.valor_total,'agendado_para',os.agendado_para) AS os_ativa FROM ordens_servico os WHERE os.cliente_id=$1 AND os.status NOT IN ('finalizado','cancelado') ORDER BY os.data_entrada DESC LIMIT 1",
+        "query": "SELECT json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'agendado_para',os.agendado_para,'orcamento_json',os.orcamento_json,'valor_total',os.valor_total,'nome_cliente',p.nome,'whatsapp_cliente',p.whatsapp,'placa',v.placa,'modelo',v.modelo,'marca',v.marca) AS os_ativa FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id LEFT JOIN veiculos v ON v.id=os.veiculo_id WHERE os.cliente_id=$1 AND os.status NOT IN ('finalizado','cancelado','finalizada','cancelada') ORDER BY os.data_entrada DESC LIMIT 1",
         "options": {
           "queryReplacement": "={{ $('Validate').item.json.pessoa.id }}"
         }
@@ -216,8 +327,8 @@
       "name": "Triagem: OS Ativa",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4480,
-        2208
+        4750,
+        2800
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -240,8 +351,8 @@
       "name": "Triagem: Veículos do Cliente",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4880,
-        2208
+        4950,
+        2800
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -261,8 +372,8 @@
       "name": "Triagem: Montar Contexto",
       "type": "n8n-nodes-base.code",
       "position": [
-        5104,
-        2208
+        5150,
+        2800
       ]
     },
     {
@@ -275,8 +386,8 @@
       "name": "Agenda: Guard os_id",
       "type": "n8n-nodes-base.code",
       "position": [
-        4480,
-        2576
+        4750,
+        2000
       ]
     },
     {
@@ -292,8 +403,8 @@
       "name": "Agenda: OS por ID",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4672,
-        2576
+        4950,
+        2000
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -316,8 +427,8 @@
       "name": "Agenda: Agenda da Loja",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4896,
-        2576
+        5150,
+        2000
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -337,8 +448,8 @@
       "name": "Agenda: Montar Contexto",
       "type": "n8n-nodes-base.code",
       "position": [
-        5120,
-        2576
+        5350,
+        2000
       ]
     },
     {
@@ -351,8 +462,8 @@
       "name": "Mecânico: Guard os_id",
       "type": "n8n-nodes-base.code",
       "position": [
-        4480,
-        2400
+        4750,
+        2500
       ]
     },
     {
@@ -368,8 +479,8 @@
       "name": "Mecânico: OS por ID",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4656,
-        2400
+        4950,
+        2500
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -392,8 +503,8 @@
       "name": "Mecânico: Veículo da OS",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4880,
-        2400
+        5150,
+        2500
       ],
       "credentials": {
         "postgres": {
@@ -412,8 +523,8 @@
       "name": "Mecânico: Montar Contexto",
       "type": "n8n-nodes-base.code",
       "position": [
-        5104,
-        2400
+        5350,
+        2500
       ]
     },
     {
@@ -429,8 +540,8 @@
       "name": "Default: OS por os_id",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4480,
-        2784
+        4750,
+        3100
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -453,8 +564,8 @@
       "name": "Default: OS por Cliente",
       "type": "n8n-nodes-base.postgres",
       "position": [
-        4880,
-        2784
+        4950,
+        3100
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -474,14 +585,14 @@
       "name": "Default: Montar Contexto",
       "type": "n8n-nodes-base.code",
       "position": [
-        5104,
-        2784
+        5150,
+        3100
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const faseDefault = 'DEFAULT';\nlet faseCore = faseDefault;\nlet os_id = \"cdcfa329-c519-4ff7-be7b-ff021b2692c7\";\n\nif ($json.pessoa && $json.pessoa.contexto_memoria) {\n  const contextoMemoria = $json.pessoa.contexto_memoria;\n  \n  if (contextoMemoria.actionDataContext) {\n    const actionDataContext = contextoMemoria.actionDataContext;\n    if (actionDataContext.faseCore) {\n      faseCore = actionDataContext.faseCore;\n    }\n    if (actionDataContext.os_id) {\n      os_id = actionDataContext.os_id;\n    } else {\n      actionDataContext.os_id = os_id;\n    }\n    $json.pessoa.contexto_memoria.actionDataContext = actionDataContext;\n  } else {\n    const actionDataContext = {\n      \"os_id\": os_id\n    };\n    $json.pessoa.contexto_memoria.actionDataContext = actionDataContext;\n  }\n  $json.pessoa.contexto_memoria.faseCore = faseCore;  \n}\n\nreturn $input.item;"
+        "jsCode": "const faseDefault = 'ROTEADOR_CENTRAL';\nlet faseCore = faseDefault;\n\nif ($json.pessoa && $json.pessoa.contexto_memoria) {\n  const contextoMemoria = $json.pessoa.contexto_memoria;\n  \n  // Garante que o actionDataContext exista\n  if (!contextoMemoria.actionDataContext) {\n    contextoMemoria.actionDataContext = {};\n  }\n\n  // Lê a fase atual ou define o padrão\n  if (contextoMemoria.actionDataContext.faseCore) {\n    faseCore = contextoMemoria.actionDataContext.faseCore;\n  } else {\n    contextoMemoria.actionDataContext.faseCore = faseCore;\n  }\n\n  $json.pessoa.contexto_memoria = contextoMemoria;\n}\n\nreturn $input.item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -491,6 +602,44 @@
       ],
       "id": "7ed430bb-9202-4eb8-bb9f-5c5fab572737",
       "name": "Validate"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE((SELECT json_agg(json_build_object('id',os.id,'status',os.status,'descricao_problema',os.descricao_problema,'agendado_para',os.agendado_para,'data_entrada',os.data_entrada,'valor_total',os.valor_total,'nome_cliente',p.nome,'whatsapp_cliente',p.whatsapp,'placa',v.placa,'modelo',v.modelo,'marca',v.marca) ORDER BY os.data_entrada ASC) FROM ordens_servico os JOIN pessoas p ON p.id=os.cliente_id JOIN veiculos v ON v.id=os.veiculo_id WHERE os.loja_id=$1 AND os.status IN ('em_diagnostico', 'em_execucao')),'[]'::json) AS lista_tarefas",
+        "options": {
+          "queryReplacement": "={{ $('Validate').item.json.loja.id }}"
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "typeVersion": 2.6,
+      "name": "Lobby: Lista Tarefas Mecanico",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        4750,
+        2300
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Start').item.json;\nconst lista = $('Lobby: Lista Tarefas Mecanico').item.json.lista_tarefas || [];\ninput.contexto = {\n  STATUS_OS_ATIVA: null,\n  OS_ATUAL: null,\n  VEICULO: null,\n  LISTA_TAREFAS: lista,\n  AGENDA_ATUAL: []\n};\nfunction buildContextoTexto(ctx) {\n  var fmt = function(val) { return val == null ? 'null' : (typeof val === 'object' ? JSON.stringify(val) : String(val)); };\n  var fmtArr = function(val) { return (!val || val.length === 0) ? '[]' : JSON.stringify(val); };\n  return '[STATUS_OS_ATIVA]\\n' + fmt(ctx.STATUS_OS_ATIVA)\n    + '\\n\\n[OS_ATUAL]\\n' + fmt(ctx.OS_ATUAL)\n    + '\\n\\n[VEICULO]\\n' + fmt(ctx.VEICULO)\n    + '\\n\\n[LISTA_TAREFAS]\\n' + fmtArr(ctx.LISTA_TAREFAS)\n    + '\\n\\n[AGENDA_ATUAL]\\n' + fmtArr(ctx.AGENDA_ATUAL);\n}\ninput.contexto_texto = buildContextoTexto(input.contexto);\n$input.item.json = input;\nreturn $input.item;"
+      },
+      "id": "b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7",
+      "typeVersion": 2,
+      "name": "Lobby: Montar Contexto Mecanico",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        5000,
+        2300
+      ]
     }
   ],
   "pinData": {
@@ -726,7 +875,7 @@
       "main": [
         [
           {
-            "node": "Lobby: Lista Tarefas",
+            "node": "Lobby: Lista Tarefas Consultor",
             "type": "main",
             "index": 0
           }
@@ -758,10 +907,17 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Lobby: Lista Tarefas Mecanico",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
-    "Lobby: Lista Tarefas": {
+    "Lobby: Lista Tarefas Consultor": {
       "main": [
         [
           {
@@ -937,11 +1093,22 @@
         ]
       ]
     },
-    "Validate": {
+    "Lobby: Lista Tarefas Mecanico": {
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Lobby: Montar Contexto Mecanico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lobby: Montar Contexto Mecanico": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
             "type": "main",
             "index": 0
           }
