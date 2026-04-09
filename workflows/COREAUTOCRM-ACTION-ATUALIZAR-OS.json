@@ -1,0 +1,142 @@
+{
+  "name": "COREAUTOCRM-ACTION-ATUALIZAR-OS",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node-id",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        250,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ad = $json.respostaIA.actionData;\nconst os_id = ad.os_id || $json.pessoa.contexto_memoria.actionDataContext.os_id;\n\nif (!os_id) throw new Error('os_id não encontrado para ATUALIZAR_OS');\n\nreturn {\n  os_id,\n  observacoes_recepcao: ad.observacoes_recepcao || null,\n  orcamento_json: ad.orcamento_parcial || null,\n  observacoes_vistoria: ad.observacoes_vistoria || null,\n  evento_os: ad.evento_os || 'Atualização de informações na OS.'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        250
+      ],
+      "id": "prepare-data-id",
+      "name": "Preparar Update"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE ordens_servico \nSET \n  observacoes_recepcao = COALESCE($2, observacoes_recepcao),\n  orcamento_json = COALESCE($3, orcamento_json),\n  observacoes_vistoria = COALESCE($4, observacoes_vistoria)\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.os_id, $json.observacoes_recepcao, $json.orcamento_json ? JSON.stringify($json.orcamento_json) : null, $json.observacoes_vistoria] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        650,
+        250
+      ],
+      "id": "update-os-id",
+      "name": "Update OS",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $node[\"prepare-data-id\"].json.os_id }}",
+            "tipo_evento": "checklist_progresso",
+            "descricao": "={{ $node[\"prepare-data-id\"].json.evento_os }}",
+            "origem": "sistema",
+            "pessoa_id": "={{ $('Start').item.json.pessoa.id }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        850,
+        250
+      ],
+      "id": "insert-event-id",
+      "name": "Registrar Evento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "prepare-data-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-data-id": {
+      "main": [
+        [
+          {
+            "node": "update-os-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update-os-id": {
+      "main": [
+        [
+          {
+            "node": "insert-event-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "COREAUTOCRM-ACTION-ATUALIZAR-OS",
+  "tags": []
+}

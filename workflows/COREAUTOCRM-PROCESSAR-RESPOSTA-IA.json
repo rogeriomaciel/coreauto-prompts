@@ -479,6 +479,54 @@
                 },
                 "conditions": [
                   {
+                    "id": "atualizar-os-cond",
+                    "leftValue": "={{ $json.respostaIA.controlAction }}",
+                    "rightValue": "ATUALIZAR_OS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ATUALIZAR_OS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "enviar-orcamento-cond",
+                    "leftValue": "={{ $json.respostaIA.controlAction }}",
+                    "rightValue": "ENVIAR_ORCAMENTO_CLIENTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ENVIAR_ORCAMENTO_CLIENTE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
                     "id": "2d9d6714-a064-4eb3-bd31-23d6c8301f00",
                     "leftValue": "={{ $json.respostaIA.controlAction }}",
                     "rightValue": "",
@@ -506,6 +554,58 @@
       ],
       "id": "9b9d8098-e53f-4bab-a76b-608b067af9f7",
       "name": "Switch Actions"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "COREAUTOCRM-ACTION-ATUALIZAR-OS",
+          "mode": "list"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        6176,
+        3300
+      ],
+      "id": "action-atualizar-os-node",
+      "name": "Action: ATUALIZAR_OS"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "COREAUTOCRM-ACTION-ENVIAR-ORCAMENTO-CLIENTE",
+          "mode": "list"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        6176,
+        3540
+      ],
+      "id": "action-enviar-orcamento-node",
+      "name": "Action: ENVIAR_ORCAMENTO_CLIENTE"
     },
     {
       "parameters": {
@@ -1595,6 +1695,20 @@
         ],
         [
           {
+            "node": "action-atualizar-os-node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "action-enviar-orcamento-node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Action: Default",
             "type": "main",
             "index": 0
@@ -1768,6 +1882,28 @@
       ]
     },
     "Action: REENVIAR-NOTIFICACAO-AGENDA": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "action-atualizar-os-node": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "action-enviar-orcamento-node": {
       "main": [
         [
           {

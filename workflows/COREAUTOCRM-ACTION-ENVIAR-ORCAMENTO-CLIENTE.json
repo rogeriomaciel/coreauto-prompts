@@ -1,0 +1,230 @@
+{
+  "name": "COREAUTOCRM-ACTION-ENVIAR-ORCAMENTO-CLIENTE",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "start-node-id",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ad = $json.respostaIA.actionData;\nconst os_id = ad.os_id || $json.pessoa.contexto_memoria.actionDataContext.os_id;\n\nif (!os_id) throw new Error('os_id não encontrado para ENVIAR_ORCAMENTO_CLIENTE');\n\nreturn {\n  os_id,\n  orcamento_finalizado: ad.orcamento_finalizado || null,\n  evento_os: ad.evento_os || 'Orçamento finalizado e enviado ao cliente.',\n  notificacao_cliente: ad.notificacao_cliente\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        200
+      ],
+      "id": "prepare-data-id",
+      "name": "Preparar Dados"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.whatsapp FROM ordens_servico os JOIN pessoas p ON p.id = os.cliente_id WHERE os.id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.os_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        600,
+        200
+      ],
+      "id": "get-client-phone-id",
+      "name": "Buscar WhatsApp do Cliente",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ordens_servico",
+          "mode": "list",
+          "cachedResultName": "ordens_servico"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "aguardando_aprovacao",
+            "orcamento_json": "={{ JSON.stringify($node[\"prepare-data-id\"].json.orcamento_finalizado) }}",
+            "id": "={{ $node[\"prepare-data-id\"].json.os_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        800,
+        200
+      ],
+      "id": "update-os-id",
+      "name": "Update OS Status",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "os_eventos",
+          "mode": "list",
+          "cachedResultName": "os_eventos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "os_id": "={{ $node[\"prepare-data-id\"].json.os_id }}",
+            "tipo_evento": "comunicacao",
+            "descricao": "={{ $node[\"prepare-data-id\"].json.evento_os }}",
+            "origem": "sistema",
+            "pessoa_id": "={{ $('Start').item.json.pessoa.id }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1000,
+        200
+      ],
+      "id": "insert-event-id",
+      "name": "Registrar Evento",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Start').item.json.loja.config_json.evolutionapi.instanceName }}",
+        "remoteJid": "={{ $node[\"get-client-phone-id\"].json.whatsapp }}",
+        "messageText": "={{ $node[\"prepare-data-id\"].json.notificacao_cliente }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        200
+      ],
+      "id": "whatsapp-id",
+      "name": "Notificar Cliente",
+      "credentials": {
+        "evolutionApi": {
+          "id": "OffPuCi6FSBEIiKv",
+          "name": "Evolution account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "prepare-data-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-data-id": {
+      "main": [
+        [
+          {
+            "node": "get-client-phone-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-client-phone-id": {
+      "main": [
+        [
+          {
+            "node": "update-os-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update-os-id": {
+      "main": [
+        [
+          {
+            "node": "insert-event-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert-event-id": {
+      "main": [
+        [
+          {
+            "node": "whatsapp-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"
+  },
+  "id": "COREAUTOCRM-ACTION-ENVIAR-ORCAMENTO-CLIENTE",
+  "tags": []
+}
