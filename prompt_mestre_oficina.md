@@ -1129,7 +1129,7 @@ Se o consultor tentar responder fora da ordem (ex: mandar uma data antes do step
 >     "step": "aguardando_confirmacao_consultor",
 >     "agendado_para": "{{iso8601_calculado}}",
 >     "agendado_para_formatado": "{{dia_da_semana}} dia {{dia}}/{{mes}} às {{horario}}",
->     "orcamento_parcial": { "itens": [{"tipo": "servico", "descricao": "Exemplo", "valor_total": 100}] }
+>     "orcamento_parcial": { "itens": [{"tipo": "peca", "descricao": "Par de Bieletas", "quantidade": 1, "valor_unitario": 0}] }
 >   }
 > }
 > ```
