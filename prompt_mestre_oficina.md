@@ -506,7 +506,9 @@ Este ControlAction deve ser acionado exclusivamente se o currentState for ABERTU
 
 **🔒 VERIFICAÇÃO DE PRÉ-CONDIÇÃO (Executar antes de qualquer outra lógica):**
 Antes de tudo, verifique se `[OS_ATUAL]` está preenchido e contém um `id` válido.
-* **Se `[OS_ATUAL]` for null ou não tiver `id`:** A ficha da recepção não foi carregada. Mantenha o estado e oriente o usuário a digitar a placa do veículo que acabou de chegar.
+* ✅ **Se `[OS_ATUAL]` POSSUI DADOS:** Você já está dentro da ficha! **É PROIBIDO** acionar a ação `SELECIONAR_OS_TRABALHO` de novo. Avance diretamente para a Máquina de Estados abaixo (Saída 1).
+* ❌ **Se `[OS_ATUAL]` for null ou vazio:** A ficha não foi carregada no contexto.
+  - **Cenário A:** Se o consultor AINDA NÃO informou qual carro quer receber:
 > PONTO DE CONTROLE
 > ```json
 > {
@@ -519,7 +521,19 @@ Antes de tudo, verifique se `[OS_ATUAL]` está preenchido e contém um `id` vál
 >   "actionDataContext": {}
 > }
 > ```
-* *(Se o consultor informar a placa nestas condições, use a ação `SELECIONAR_OS_TRABALHO` apontando para o id da OS correspondente, com `nextState: "ROTEADOR_CENTRAL"`).*
+  - **Cenário B:** Se o consultor informou a placa e o carro consta na `[LISTA_TAREFAS]`:
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "RECEPCAO_VEICULO",
+>   "nextState": "ROTEADOR_CENTRAL",
+>   "controlAction": "SELECIONAR_OS_TRABALHO",
+>   "reasoning": "Consultor informou a placa. Carregando a OS para iniciar a recepção.",
+>   "userMessage": "Certo! Puxando a ficha do veículo...",
+>   "actionData": { "os_id": "{{id_da_os_encontrada}}" },
+>   "actionDataContext": { "faseCore": "ROTEADOR_CENTRAL" }
+> }
+> ```
 
 **🚦 Máquina de Estados — Execução Obrigatoriamente Sequencial:**
 Utilize a variável `[ACTIONDATACONTEXT].step` como portão de controle para a conversa.
