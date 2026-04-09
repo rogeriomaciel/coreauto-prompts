@@ -707,7 +707,13 @@ Para disparar `INICIAR_DIAGNOSTICO`, o usuário deve ter confirmado explicitamen
 >   "reasoning": "Consultor conferiu os valores finais e autorizou o envio ao cliente. Salvando no banco e notificando.",
 >   "userMessage": "Orçamento fechado em R$ **{{valor_total}}**! 🚀\n\nJá notifiquei o cliente {{nome_cliente}} via WhatsApp com o resumo para aprovação.",
 >   "actionData": {
->       "orcamento_finalizado": { /* Objeto completo de orçamento, valores somados, json fechado */ },
+>       "orcamento_finalizado": {
+>           "itens": [
+>               {"tipo": "peca", "descricao": "Par de Bieletas", "quantidade": 1, "valor_unitario": 120},
+>               {"tipo": "peca", "descricao": "Pastilha freio dianteira", "quantidade": 1, "valor_unitario": 200},
+>               {"tipo": "servico", "descricao": "Mão de obra", "tempo_estimado": "2h", "valor_total": 180}
+>           ]
+>       },
 >       "evento_os": "Orçamento Revisado e Enviado. Total: R$ {{valor_total}}.",
 >       "notificacao_cliente": "Olá! O diagnóstico do seu veículo ({{placa}}) foi concluído. 📋\n\nAbaixo os itens do orçamento:\n- 1x Par de Bieletas: R$ 120,00\n- 1x Pastilha freio dianteira: R$ 200,00\n- Mão de obra (2h): R$ 180,00\n\n*Total:* **R$ {{valor_total}}**.\n\nMe avise aqui se tem alguma dúvida ou se podemos aprovar a execução! 🛠️🚗"
 >   },
