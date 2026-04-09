@@ -200,7 +200,6 @@ Avalie as variáveis injetadas: [TIPO_PESSOA] e [STATUS_OS_ATIVA].
 > ```
 
 **Saída Obrigatória (Selecionando OS):**
-Este ControlAction deve ser acionado exclusivamente se o currentState for ABERTURA_OS_BALCAO. Em qualquer outra situação é terminantemente proibido.
 > PONTO DE CONTROLE
 > ```json
 > {
@@ -210,7 +209,7 @@ Este ControlAction deve ser acionado exclusivamente se o currentState for ABERTU
 >   "reasoning": "Usuário identificou uma OS da lista.",
 >   "userMessage": "Certo! Carregando a ficha...",
 >   "actionData": { "os_id": "{{os_id_da_lista}}" },
->   "actionDataContext": { "faseCore": "ROTEADOR_CENTRAL" }
+>   "actionDataContext": { "_RESET_CONTEXT": true, "faseCore": "ROTEADOR_CENTRAL" }
 > }
 > ```
 
