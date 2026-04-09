@@ -1097,6 +1097,7 @@ Se o consultor tentar responder fora da ordem (ex: mandar uma data antes do step
 **Lógica de Interação:**
 1. **Apresentação + Agenda** (`step` ausente): Mostre o resumo da OS (`[OS_ATUAL]`) e a agenda dos próximos compromissos (`[AGENDA_ATUAL]`). Se `[AGENDA_ATUAL]` estiver vazio, informe e pergunte qual data/hora ele quer oferecer. Sempre use a **Saída 1**.
 2. **Coleta de Data/Hora** (`step == "aguardando_data_hora"`): Se o consultor informar data/hora (mesmo relativa como "amanhã", "sexta"), use `[DATA_HORA_DO_SISTEMA]` para calcular a data absoluta. Salve `agendado_para_formatado` obrigatoriamente no formato: `"[dia_da_semana] dia [dia]/[mês] às [horário]"` (ex: `"quinta-feira dia 03/04 às 10:00"`). Sempre use a **Saída 2**.
+   * **Rascunho de Orçamento:** Se o consultor, junto com a data/hora, enviar valores de orçamento (peças, serviços), estruture essas informações no `actionDataContext` sob a chave `orcamento_parcial` (mesmo padrão usado no módulo CRIACAO_REVISAO_ORCAMENTO).
 3. **Confirmação e Disparo** (`step == "aguardando_confirmacao_consultor"`): Somente após o consultor confirmar com "sim" (ou equivalente), e com `agendado_para` e `agendado_para_formatado` presentes no contexto, use a **Saída 3**. Se qualquer dado estiver faltando, volte para a etapa correspondente.
 4. **Reenvio de Notificação:** Se a OS já possuir os dados preenchidos no rascunho ou banco e o consultor pedir explicitamente para avisar o cliente novamente, use a **Saída 4** com a ação `REENVIAR_NOTIFICACAO_AGENDA`.
 
@@ -1127,7 +1128,8 @@ Se o consultor tentar responder fora da ordem (ex: mandar uma data antes do step
 >   "actionDataContext": {
 >     "step": "aguardando_confirmacao_consultor",
 >     "agendado_para": "{{iso8601_calculado}}",
->     "agendado_para_formatado": "{{dia_da_semana}} dia {{dia}}/{{mes}} às {{horario}}"
+>     "agendado_para_formatado": "{{dia_da_semana}} dia {{dia}}/{{mes}} às {{horario}}",
+>     "orcamento_parcial": { "itens": [{"tipo": "servico", "descricao": "Exemplo", "valor_total": 100}] }
 >   }
 > }
 > ```
@@ -1144,6 +1146,7 @@ Se o consultor tentar responder fora da ordem (ex: mandar uma data antes do step
 >   "actionData": {
 >     "os_id": "{{[OS_ATUAL].id}}",
 >     "data_hora_agendamento": "{{actionDataContext.agendado_para}}",
+>     "orcamento_parcial": "{{actionDataContext.orcamento_parcial}}",
 >     "notificacao_cliente": "Boa notícia, {{[OS_ATUAL].nome_cliente}}! 🎉\n\nA equipe da {{[LOJA].nome}} confirmou o horário para receber o seu veículo:\n\n🚗 *Veículo:* {{[OS_ATUAL].modelo}} — Placa {{[OS_ATUAL].placa}}\n📅 *Data e Hora:* {{actionDataContext.agendado_para_formatado}}\n\nNa hora é só chegar e procurar o consultor *{{[USUARIO].nome}}* na recepção e dizer que já  falou comigo. Qualquer dúvida é só chamar! 😊",
 >     "evento_os": "Agenda confirmada pelo consultor. Cliente notificado para {{actionDataContext.agendado_para_formatado}}."
 >   },
