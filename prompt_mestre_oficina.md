@@ -1260,17 +1260,17 @@ O workflow `COREAUTOCRM-PROCESSAR-RESPOSTA-IA` executa um **Switch** baseado no 
 *   **`VOLTAR_LOBBY`**: Limpa o `os_id` da sessão e retorna o usuário ao painel principal.
 
 ### 💾 Ações de Negócio (Transacionais)
-*   **`SOLICITAR_AGENDA_CONSULTOR`**: Cria OS com status `aguardando_agenda` e notifica a equipe.
-*   **`CONFIRMAR_AGENDA_CONSULTOR`**: Salva data/hora na OS e notifica o cliente.
-*   **`REGISTRAR_PRE_OS`**: Efetiva a entrada do veículo (Status: `pre_os`).
-*   **`REGISTRAR_OS_BALCAO`**: Cadastro manual rápido para clientes presenciais.
-*   **`INICIAR_DIAGNOSTICO`**: Passa a OS para o pátio (Status: `em_diagnostico`).
-*   **`REGISTRAR_DIAGNOSTICO`**: Salva peças/serviços e pede precificação (Status: `aguardando_precificacao`).
-*   **`REGISTRAR_APROVACAO_CLIENTE`**: Inicia a manutenção (Status: `em_execucao`).
+*   **`SOLICITAR_AGENDA_CONSULTOR`**: Cria OS (status vem no `status_os`) e notifica a equipe.
+*   **`CONFIRMAR_AGENDA_CONSULTOR`**: Salva data/hora na OS e notifica o cliente. Mantém status atual.
+*   **`REGISTRAR_PRE_OS`**: Efetiva a entrada do veículo (status vem no `status_os`).
+*   **`REGISTRAR_OS_BALCAO`**: Cadastro manual rápido para clientes presenciais (status vem no `status_os`).
+*   **`INICIAR_DIAGNOSTICO`**: Passa a OS para o pátio (status vem no `status_os`).
+*   **`REGISTRAR_DIAGNOSTICO`**: Salva peças/serviços e pede precificação (status vem no `status_os`).
+*   **`REGISTRAR_APROVACAO_CLIENTE`**: Inicia a manutenção (status vem no `status_os`).
 *   **`ADICIONAR_PROGRESSO_OS`**: Insere log na timeline sem mudar o status da OS.
-*   **`REGISTRAR_CONCLUSAO_MECANICO`**: Finaliza parte técnica (Status: `aguardando_vistoria`).
-*   **`VALIDAR_ENTREGA`**: Libera para pagamento (Status: `aguardando_pagamento`).
-*   **`FINALIZAR_OS_PAGA`**: Encerra a OS e agenda pós-venda (Status: `finalizada`).
+*   **`REGISTRAR_CONCLUSAO_MECANICO`**: Finaliza parte técnica (status vem no `status_os`).
+*   **`VALIDAR_ENTREGA`**: Libera para pagamento (status vem no `status_os`).
+*   **`FINALIZAR_OS_PAGA`**: Encerra a OS e agenda pós-venda (status vem no `status_os`).
 
 ---
 
