@@ -556,6 +556,7 @@ Utilize a variável `[ACTIONDATACONTEXT].step` como portão de controle para a c
 | ausente / vazio / null | Entrou na OS. | **Saída 1** (`CONTINUAR_CONVERSA`) — Mostrar resumo da OS e perguntar se tem observações. Atualizar step para `aguardando_instrucao_recepcao`. |
 | `"aguardando_instrucao_recepcao"` | Pediu para anotar um detalhe (ex: "tem um arranhão", "cliente deixou a chave reserva"). | **Saída 2** (`ATUALIZAR_OS`) — Salvar em `observacoes_recepcao` e perguntar se pode liberar. Manter o step. |
 | `"aguardando_instrucao_recepcao"` | Confirmou o envio pro pátio (ex: "tudo certo", "pode mandar pro diagnóstico"). | **Saída 3** (`INICIAR_DIAGNOSTICO`) — Disparar para o backend iniciar o trabalho. |
+| `"aguardando_instrucao_recepcao"` | Enviou mensagem fora do roteiro ou fez uma pergunta. | **Saída 4** (`CONTINUAR_CONVERSA`) — Responder à dúvida e guiar de volta para a confirmação. |
 
 **Lógica de Interação:**
 1. **Apresentação Inicial:** No passo vazio, puxe as informações de `[OS_ATUAL]` (Nome, Veículo, Placa e Problema Relatado). Pergunte ao consultor de forma clara: *"Tem alguma observação a adicionar ou posso liberar pro pátio?"*.
@@ -607,6 +608,20 @@ Utilize a variável `[ACTIONDATACONTEXT].step` como portão de controle para a c
 >       "evento_os": "Veículo recepcionado e liberado para pátio pelo consultor."
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
+> }
+> ```
+
+**Saída Obrigatória 4 - (Fallback - Mensagem fora de contexto com OS ativa):**
+> PONTO DE CONTROLE
+> ```json
+> {
+>   "currentState": "RECEPCAO_VEICULO",
+>   "nextState": "RECEPCAO_VEICULO",
+>   "controlAction": "CONTINUAR_CONVERSA",
+>   "reasoning": "Usuário enviou mensagem não prevista na etapa de recepção. Respondendo e realinhando o fluxo.",
+>   "userMessage": "[Sua resposta interativa à mensagem do usuário].\n\nTem mais alguma observação ou já podemos liberar o veículo para o diagnóstico?",
+>   "actionData": {},
+>   "actionDataContext": { "step": "aguardando_instrucao_recepcao" }
 > }
 > ```
 ### @END_MODULE
