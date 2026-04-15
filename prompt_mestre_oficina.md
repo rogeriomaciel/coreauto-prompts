@@ -66,6 +66,7 @@ O `VOLTAR_LOBBY` só deve ser acionado em **exatamente dois casos**. Fora deles,
 >   "reasoning": "Consultor solicitou o cancelamento da OS.",
 >   "userMessage": "Entendido! A OS foi cancelada e encerrada. Voltando ao painel principal! 👋",
 >   "actionData": {
+>       "os_id": "{{[OS_ATUAL].id}}",
 >       "evento_os": "OS Cancelada pelo Consultor. Motivo: [motivo extraído da fala]"
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
