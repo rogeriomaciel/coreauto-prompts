@@ -64,6 +64,31 @@
                 },
                 "conditions": [
                   {
+                    "id": "0fddee1e-08b5-4591-9737-5c118ad71a52",
+                    "leftValue": "={{ $json.body.data.messageType.toUpperCase() }}",
+                    "rightValue": "DOCUMENTMESSAGE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DOCUMENTMESSAGE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
                     "id": "ee214993-e309-4e0a-b8c2-44a551dddffb",
                     "leftValue": "={{ $json.body.data.messageType.toUpperCase() }}",
                     "rightValue": "",
@@ -139,7 +164,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "$input.item.json.body.fromMe = $('Start').item.json.body.data.key.fromMe;\nreturn $input.item;"
+        "jsCode": "if ($json.validPayload)\n  $input.item.json.body.fromMe = $('Start').item.json.body.data.key.fromMe;\nreturn $input.item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -160,7 +185,7 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        208,
+        192,
         -176
       ],
       "id": "a31dcce2-2ec2-4cdd-9309-fcf57a85154e",
@@ -225,7 +250,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Pega o corpo da requisição que chega da Evolution API\nconst body = $json.body;\nconst data = body.data || {key: {remoteJid : body.remoteJid}};\nconst key = data.key;\n\nlet senderPhone = '';\nlet senderGroup = '';\n// Usa o pushName se existir, que é o nome do contato no WhatsApp\nlet senderName = '';\nlet validPayload = true;\n\n// A \"Auditoria\" para diferenciar grupo de privado\nif (key.remoteJid && key.remoteJid.includes('@g.us')) {\n    // CENÁRIO 1: MENSAGEM DE GRUPO\n    // O ID do grupo é o remoteJid\n    senderGroup = key.remoteJid.split('@')[0];\n    \n    // O número do participante que enviou a mensagem está no campo 'participant'\n    if (key.participantAlt){\n      senderPhone = key.participantAlt.split('@')[0];  \n    } else if (key.participant) {\n      senderPhone = key.participant.split('@')[0];  \n      \n    } else {\n      validPayload = false;\n    }\n    \n\n    senderName = data.pushName;\n\n} else {\n    // CENÁRIO 2: MENSAGEM PRIVADA\n    senderGroup = ''; // O campo de grupo fica vazio\n    \n    // O número do remetente é o próprio remoteJid\n    const idjid = '@';\n      \n    let jid = key.remoteJidAlt || key.remoteJid;\n    if (!jid.includes(idjid)) jid = key.remoteJid;\n  \n    senderPhone = jid.split('@')[0];\n\n    //o Nome do remetente \n    senderName = body.senderName || data.pushName || \"\";\n}\n\n// Retorna o objeto final e limpo para ser usado no resto do workflow\n$input.item.json = {\n  body: {\n    validPayload,\n    messageType: \"TEXT\",\n    senderName: senderName,\n    phone: senderPhone,\n    senderGroup: senderGroup, // Campo chave para nosso Switch\n    connectedPhone: body.sender.split('@')[0], // O número da instância que recebeu\n    text: {\n      message: data.message.conversation\n    },\n    audio: {\n      message: \"\"\n    }\n  }\n};\n\nreturn $input.item;"
+        "jsCode": "// Pega o corpo da requisição que chega da Evolution API\nconst body = $json.body;\nconst data = body.data || {key: {remoteJid : body.remoteJid}};\nconst key = data.key;\n\nlet senderPhone = '';\nlet senderGroup = '';\n// Usa o pushName se existir, que é o nome do contato no WhatsApp\nlet senderName = '';\nlet validPayload = !$json.body.data.key.fromMe;\n\n// A \"Auditoria\" para diferenciar grupo de privado\nif (key.remoteJid && key.remoteJid.includes('@g.us')) {\n    // CENÁRIO 1: MENSAGEM DE GRUPO\n    // O ID do grupo é o remoteJid\n    senderGroup = key.remoteJid.split('@')[0];\n\n    /*\n    // O número do participante que enviou a mensagem está no campo 'participant'\n    if (key.participantAlt){\n      senderPhone = key.participantAlt.split('@')[0];  \n    } else if (key.participant) {\n      senderPhone = key.participant.split('@')[0];  \n    } else {\n      validPayload = false;\n    }\n    */\n\n    if (!data.message?.conversation) {\n      validPayload = false;\n    }\n    \n\n    senderName = data.pushName;\n\n} else {\n    // CENÁRIO 2: MENSAGEM PRIVADA\n    senderGroup = ''; // O campo de grupo fica vazio\n    \n    // O número do remetente é o próprio remoteJid\n    const idjid = '@';\n      \n    let jid = key.remoteJidAlt || key.remoteJid;\n    if (!jid.includes(idjid)) jid = key.remoteJid;\n  \n    senderPhone = jid.split('@')[0];\n\n    //o Nome do remetente \n    senderName = body.senderName || data.pushName || \"\";\n}\n\n// Retorna o objeto final e limpo para ser usado no resto do workflow\n$input.item.json = {\n  body: {\n    validPayload,\n    messageType: \"TEXT\",\n    senderName: senderName,\n    phone: senderPhone,\n    senderGroup: senderGroup, // Campo chave para nosso Switch\n    connectedPhone: body.sender.split('@')[0], // O número da instância que recebeu\n    text: {\n      message: data.message.conversation\n    },\n    audio: {\n      message: \"\"\n    }\n  }\n};\n\nreturn $input.item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -254,7 +279,7 @@
       "typeVersion": 3.4,
       "position": [
         880,
-        208
+        352
       ],
       "id": "c828ae56-434b-40b2-a89f-12f3268483d1",
       "name": "Edit Fields"
@@ -323,7 +348,8 @@
     },
     {
       "parameters": {
-        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nreturn $input.item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -333,6 +359,48 @@
       ],
       "id": "e4f06ba5-b1d3-4c29-ad0f-49769ff5c442",
       "name": "Resposta Final"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "QA8aADpvqGqMSi1X",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/QA8aADpvqGqMSi1X",
+          "cachedResultName": "COREAUTOCRM-CONVERT-PDF-TO-JSON"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        160
+      ],
+      "id": "a8dd7ebe-9438-4949-83d4-402c77f020c4",
+      "name": "Call 'COREAUTOCRM-CONVERT-PDF-TO-JSON'"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Pega o corpo da requisição que chega da Evolution API\nconst body = $('Switch').item.json.body\nconst data = body.data || {key: {remoteJid : body.remoteJid}};\nconst key = data.key;\n\nlet senderPhone = '';\nlet senderGroup = '';\n// Usa o pushName se existir, que é o nome do contato no WhatsApp\nlet senderName = '';\nlet validPayload = $json.respostaIA ? true: false;\n\n// A \"Auditoria\" para diferenciar grupo de privado\nif (key.remoteJid && key.remoteJid.includes('@g.us')) {\n    // CENÁRIO 1: MENSAGEM DE GRUPO\n    // O ID do grupo é o remoteJid\n    senderGroup = key.remoteJid.split('@')[0];\n\n    \n\n    senderName = data.pushName;\n\n} else {\n    // CENÁRIO 2: MENSAGEM PRIVADA\n    senderGroup = ''; // O campo de grupo fica vazio\n    \n    // O número do remetente é o próprio remoteJid\n    const idjid = '@';\n      \n    let jid = key.remoteJidAlt || key.remoteJid;\n    if (!jid.includes(idjid)) jid = key.remoteJid;\n  \n    senderPhone = jid.split('@')[0];\n\n    //o Nome do remetente \n    senderName = body.senderName || data.pushName || \"\";\n}\n\n// Retorna o objeto final e limpo para ser usado no resto do workflow\n$input.item.json = {\n  body: {\n    validPayload,\n    messageType: \"PDF\",\n    senderName: senderName,\n    phone: senderPhone,\n    senderGroup: senderGroup, // Campo chave para nosso Switch\n    connectedPhone: body.sender.split('@')[0], // O número da instância que recebeu\n    text: {\n      message: data.message.conversation\n    },\n    audio: {\n      message: \"\"\n    },\n    pdf: {\n      data : $json.respostaIA\n    }\n  }\n};\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        144
+      ],
+      "id": "04adc062-fff2-4d9c-af02-aa24f4f641d4",
+      "name": "Formatar Dados PDF"
     }
   ],
   "pinData": {
@@ -344,7 +412,7 @@
             "x-real-ip": "52.45.236.54",
             "x-forward-for": "52.45.236.54",
             "connection": "upgrade",
-            "content-length": "1804",
+            "content-length": "730",
             "accept": "application/json, text/plain, */*",
             "content-type": "application/json",
             "user-agent": "axios/1.13.2",
@@ -354,151 +422,31 @@
           "query": {},
           "body": {
             "event": "messages.upsert",
-            "instance": "coreauto",
+            "instance": "kadosh",
             "data": {
               "key": {
-                "remoteJid": "120363425446959353@g.us",
-                "fromMe": false,
-                "id": "3EB0B53FCCC01444BF43F0",
-                "participant": "89000379461669@lid",
-                "participantAlt": "556296232227@s.whatsapp.net",
+                "remoteJid": "556293817416@s.whatsapp.net",
+                "remoteJidAlt": "556293817416@s.whatsapp.net",
+                "fromMe": true,
+                "id": "3EB0159B22F0AC6BBDC134",
+                "participant": "",
                 "addressingMode": "lid"
               },
-              "pushName": "Rogério Maciel",
-              "status": "DELIVERY_ACK",
+              "pushName": "Kadosh Manutenção Automotiva",
+              "status": "SERVER_ACK",
               "message": {
-                "senderKeyDistributionMessage": {
-                  "groupId": "120363425446959353@g.us",
-                  "axolotlSenderKeyDistributionMessage": {
-                    "0": 51,
-                    "1": 8,
-                    "2": 240,
-                    "3": 211,
-                    "4": 130,
-                    "5": 185,
-                    "6": 7,
-                    "7": 16,
-                    "8": 0,
-                    "9": 26,
-                    "10": 32,
-                    "11": 11,
-                    "12": 221,
-                    "13": 2,
-                    "14": 235,
-                    "15": 30,
-                    "16": 254,
-                    "17": 99,
-                    "18": 15,
-                    "19": 22,
-                    "20": 134,
-                    "21": 186,
-                    "22": 144,
-                    "23": 143,
-                    "24": 11,
-                    "25": 22,
-                    "26": 119,
-                    "27": 31,
-                    "28": 252,
-                    "29": 163,
-                    "30": 17,
-                    "31": 53,
-                    "32": 58,
-                    "33": 31,
-                    "34": 70,
-                    "35": 56,
-                    "36": 70,
-                    "37": 147,
-                    "38": 67,
-                    "39": 136,
-                    "40": 239,
-                    "41": 186,
-                    "42": 135,
-                    "43": 34,
-                    "44": 33,
-                    "45": 5,
-                    "46": 254,
-                    "47": 237,
-                    "48": 105,
-                    "49": 163,
-                    "50": 191,
-                    "51": 67,
-                    "52": 77,
-                    "53": 43,
-                    "54": 66,
-                    "55": 169,
-                    "56": 37,
-                    "57": 110,
-                    "58": 66,
-                    "59": 147,
-                    "60": 155,
-                    "61": 170,
-                    "62": 153,
-                    "63": 166,
-                    "64": 129,
-                    "65": 248,
-                    "66": 106,
-                    "67": 24,
-                    "68": 3,
-                    "69": 110,
-                    "70": 115,
-                    "71": 182,
-                    "72": 51,
-                    "73": 78,
-                    "74": 240,
-                    "75": 126,
-                    "76": 242,
-                    "77": 125
-                  }
-                },
-                "messageContextInfo": {
-                  "threadId": [],
-                  "messageSecret": {
-                    "0": 74,
-                    "1": 47,
-                    "2": 216,
-                    "3": 195,
-                    "4": 224,
-                    "5": 88,
-                    "6": 221,
-                    "7": 163,
-                    "8": 111,
-                    "9": 57,
-                    "10": 49,
-                    "11": 37,
-                    "12": 230,
-                    "13": 142,
-                    "14": 33,
-                    "15": 90,
-                    "16": 140,
-                    "17": 156,
-                    "18": 38,
-                    "19": 134,
-                    "20": 108,
-                    "21": 51,
-                    "22": 4,
-                    "23": 140,
-                    "24": 75,
-                    "25": 14,
-                    "26": 149,
-                    "27": 54,
-                    "28": 152,
-                    "29": 162,
-                    "30": 117,
-                    "31": 119
-                  }
-                },
-                "conversation": "oi"
+                "conversation": "manda aqui"
               },
               "messageType": "conversation",
-              "messageTimestamp": 1772476958,
-              "instanceId": "56d361f4-7909-4d98-88d7-69ad75985f6c",
+              "messageTimestamp": 1776554534,
+              "instanceId": "4ea7c89a-2de2-438d-9a40-15bfedb85688",
               "source": "web"
             },
             "destination": "https://logic.runoncore.com/app/0a54f73a-2621-49c3-8cb7-09d94bba05ba",
-            "date_time": "2026-03-02T15:42:38.596Z",
-            "sender": "556296425277@s.whatsapp.net",
+            "date_time": "2026-04-18T20:22:15.109Z",
+            "sender": "556232831251@s.whatsapp.net",
             "server_url": "http://evolution.rogeriomaciel.com.br",
-            "apikey": "423C9050F5C6-4BA4-BE47-724F37344D73"
+            "apikey": "64FD48B9FA42-49E9-87B3-0019E22547D3"
           },
           "webhookUrl": "https://logic.runoncore.com/app/0a54f73a-2621-49c3-8cb7-09d94bba05ba",
           "executionMode": "production"
@@ -519,6 +467,13 @@
         [
           {
             "node": "Formatar Dados Texto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'COREAUTOCRM-CONVERT-PDF-TO-JSON'",
             "type": "main",
             "index": 0
           }
@@ -670,6 +625,28 @@
           }
         ]
       ]
+    },
+    "Call 'COREAUTOCRM-CONVERT-PDF-TO-JSON'": {
+      "main": [
+        [
+          {
+            "node": "Formatar Dados PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Dados PDF": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -677,7 +654,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "3ef73735-c176-413f-8294-2bf11d3a29f0",
+  "versionId": "388a3321-1934-484e-8804-3a5f11c70998",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "8789fea02bf66b7dafd4e5176a3c32778a425a290813713219986f59984f8a16"

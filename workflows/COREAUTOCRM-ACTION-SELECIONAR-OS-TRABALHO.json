@@ -224,11 +224,32 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        640,
+        860,
         0
       ],
       "id": "c74cee64-b6f5-4e4a-bfca-08fbc9c0101a",
       "name": "Return"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE ordens_servico \nSET \n  consultor_id = CASE WHEN '{{ $json.pessoa.tipo }}' = 'consultor' THEN '{{ $json.pessoa.id }}'::uuid ELSE consultor_id END,\n  mecanico_id = CASE WHEN '{{ $json.pessoa.tipo }}' = 'mecanico' THEN '{{ $json.pessoa.id }}'::uuid ELSE mecanico_id END\nWHERE id = NULLIF('{{ $json.pessoa.contexto_memoria.actionDataContext.os_id }}', '')::uuid;"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        640,
+        0
+      ],
+      "id": "e234a9b1-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "name": "Atribuir Responsavel OS",
+      "credentials": {
+        "postgres": {
+          "id": "77y5s6MheuLZSCpd",
+          "name": "COREAUTOCRM"
+        }
+      },
+      "onError": "continueErrorOutput"
     }
   ],
   "pinData": {
@@ -477,6 +498,17 @@
       ]
     },
     "Update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Atribuir Responsavel OS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atribuir Responsavel OS": {
       "main": [
         [
           {

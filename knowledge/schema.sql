@@ -161,6 +161,7 @@ CREATE TABLE ordens_servico (
     veiculo_id UUID NOT NULL REFERENCES veiculos(id),
     cliente_id UUID NOT NULL REFERENCES pessoas(id),
     consultor_id UUID REFERENCES pessoas(id),
+    mecanico_id UUID REFERENCES pessoas(id),
     status VARCHAR(50) NOT NULL DEFAULT 'triagem',
     descricao_problema TEXT,
     orcamento_json JSONB DEFAULT '[]',
