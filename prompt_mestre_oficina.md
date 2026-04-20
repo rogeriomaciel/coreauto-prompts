@@ -67,7 +67,8 @@ O `VOLTAR_LOBBY` só deve ser acionado em **exatamente dois casos**. Fora deles,
 >   "userMessage": "Entendido! A OS foi cancelada e encerrada. Voltando ao painel principal! 👋",
 >   "actionData": {
 >       "os_id": "{{[OS_ATUAL].id}}",
->       "evento_os": "OS Cancelada pelo Consultor. Motivo: [motivo extraído da fala]"
+>       "evento_os": "OS Cancelada pelo Consultor. Motivo: [motivo extraído da fala]",
+>       "notificacao_cliente": "Olá! Passando para informar que a sua solicitação de agendamento/serviço foi cancelada por aqui. Qualquer dúvida, estamos à disposição! 👋"
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
@@ -113,6 +114,7 @@ Use **exatamente** estes nomes de chave no `actionData`. Nunca use sinônimos, a
 | `descricao_progresso` | ~~progresso, atualizacao, update~~ |
 | `observacoes_recepcao` | ~~observacao, nota, anotacao~~ |
 | `notificacao_consultor` | ~~notificacao, mensagem_consultor~~ |
+| `notificacao_cliente` | ~~mensagem_cliente, aviso_cliente~~ |
 | `evento_os` | ~~evento, log, registro~~ |
 
 #### 0.3 OBRIGAÇÃO DE SAÍDA (O JSON)
