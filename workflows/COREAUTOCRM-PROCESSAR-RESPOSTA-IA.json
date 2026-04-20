@@ -527,6 +527,30 @@
                 },
                 "conditions": [
                   {
+                    "id": "cancelar-os-cond",
+                    "leftValue": "={{ $json.respostaIA.controlAction }}",
+                    "rightValue": "CANCELAR_OS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CANCELAR_OS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
                     "id": "2d9d6714-a064-4eb3-bd31-23d6c8301f00",
                     "leftValue": "={{ $json.respostaIA.controlAction }}",
                     "rightValue": "",
@@ -1355,13 +1379,39 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const ad = $json.respostaIA?.actionData;\nif (!ad) return $input.item;\n\nconst alias = {\n  os_id:                  ['id_os', 'ordem_servico_id', 'os_selecionada', 'os_id_selecionada'],\n  data_hora_agendamento:  ['agendado_para', 'data_agendamento', 'data_hora', 'horario', 'data_confirmada', 'data_hora_confirmada', 'horario_agendamento'],\n  placa_veiculo:          ['placa', 'placa_carro', 'placa_do_veiculo'],\n  modelo_veiculo:         ['modelo', 'modelo_carro', 'modelo_do_veiculo'],\n  marca_veiculo:          ['marca', 'marca_carro', 'marca_do_veiculo'],\n  descricao_problema:     ['problema', 'sintoma', 'descricao', 'relato', 'descricao_sintoma'],\n  nome_cliente:           ['nome', 'cliente', 'nome_do_cliente'],\n  telefone_cliente:       ['telefone', 'whatsapp', 'phone', 'celular', 'contato'],\n  descricao_progresso:    ['progresso', 'atualizacao', 'update', 'descricao_atualizacao'],\n  observacoes_recepcao:   ['observacao', 'nota', 'anotacao', 'observacao_recepcao'],\n  notificacao_consultor:  ['notificacao', 'mensagem_consultor', 'msg_consultor'],\n  evento_os:              ['evento', 'log', 'registro', 'log_evento']\n};\n\nfor (const [canonical, variants] of Object.entries(alias)) {\n  if (!(canonical in ad)) {\n    for (const v of variants) {\n      if (v in ad) {\n        ad[canonical] = ad[v];\n        delete ad[v];\n        break;\n      }\n    }\n  }\n}\n\n$input.item.json.respostaIA.actionData = ad;\nreturn $input.item;"
+        "jsCode": "const ad = $json.respostaIA?.actionData;\nif (!ad) return $input.item;\n\nconst alias = {\n  os_id:                  ['id_os', 'ordem_servico_id', 'os_selecionada', 'os_id_selecionada'],\n  data_hora_agendamento:  ['agendado_para', 'data_agendamento', 'data_hora', 'horario', 'data_confirmada', 'data_hora_confirmada', 'horario_agendamento'],\n  placa_veiculo:          ['placa', 'placa_carro', 'placa_do_veiculo'],\n  modelo_veiculo:         ['modelo', 'modelo_carro', 'modelo_do_veiculo'],\n  marca_veiculo:          ['marca', 'marca_carro', 'marca_do_veiculo'],\n  descricao_problema:     ['problema', 'sintoma', 'descricao', 'relato', 'descricao_sintoma'],\n  nome_cliente:           ['nome', 'cliente', 'nome_do_cliente'],\n  telefone_cliente:       ['telefone', 'whatsapp', 'phone', 'celular', 'contato'],\n  descricao_progresso:    ['progresso', 'atualizacao', 'update', 'descricao_atualizacao'],\n  observacoes_recepcao:   ['observacao', 'nota', 'anotacao', 'observacao_recepcao'],\n  notificacao_consultor:  ['notificacao', 'mensagem_consultor', 'msg_consultor'],\n  notificacao_cliente:    ['mensagem_cliente', 'aviso_cliente', 'msg_cliente'],\n  evento_os:              ['evento', 'log', 'registro', 'log_evento']\n};\n\nfor (const [canonical, variants] of Object.entries(alias)) {\n  if (!(canonical in ad)) {\n    for (const v of variants) {\n      if (v in ad) {\n        ad[canonical] = ad[v];\n        delete ad[v];\n        break;\n      }\n    }\n  }\n}\n\n$input.item.json.respostaIA.actionData = ad;\nreturn $input.item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [5040, 620],
       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "Normalizar ActionData"
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "COREAUTOCRM-ACTION-CANCELAR-OS",
+            "mode": "list"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          6176,
+          3780
+        ],
+        "id": "action-cancelar-os-node",
+        "name": "Action: CANCELAR_OS"
     }
   ],
   "pinData": {
@@ -1703,6 +1753,13 @@
         [
           {
             "node": "action-enviar-orcamento-node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "action-cancelar-os-node",
             "type": "main",
             "index": 0
           }
