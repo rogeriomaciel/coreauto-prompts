@@ -233,7 +233,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=UPDATE ordens_servico \nSET \n  consultor_id = CASE WHEN '{{ $json.pessoa.tipo }}' = 'consultor' THEN '{{ $json.pessoa.id }}'::uuid ELSE consultor_id END,\n  mecanico_id = CASE WHEN '{{ $json.pessoa.tipo }}' = 'mecanico' THEN '{{ $json.pessoa.id }}'::uuid ELSE mecanico_id END\nWHERE id = NULLIF('{{ $json.pessoa.contexto_memoria.actionDataContext.os_id }}', '')::uuid;"
+        "query": "=UPDATE ordens_servico \nSET \n  consultor_id = CASE WHEN '{{ $json.pessoa.tipo }}' = 'consultor' THEN '{{ $json.pessoa.id }}'::uuid ELSE consultor_id END,\n  mecanico_id = CASE WHEN '{{ $json.pessoa.tipo }}' = 'mecanico' THEN '{{ $json.pessoa.id }}'::uuid ELSE mecanico_id END\nWHERE id = NULLIF('{{ $json.pessoa.contexto_memoria.actionDataContext.os_id }}', '')::uuid\n  AND (\n    ('{{ $json.pessoa.tipo }}' = 'consultor' AND (consultor_id IS NULL OR consultor_id = '{{ $json.pessoa.id }}'::uuid))\n    OR \n    ('{{ $json.pessoa.tipo }}' = 'mecanico' AND (mecanico_id IS NULL OR mecanico_id = '{{ $json.pessoa.id }}'::uuid))\n  );"
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
