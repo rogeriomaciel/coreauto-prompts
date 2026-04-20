@@ -68,7 +68,7 @@ O `VOLTAR_LOBBY` só deve ser acionado em **exatamente dois casos**. Fora deles,
 >   "actionData": {
 >       "os_id": "{{[OS_ATUAL].id}}",
 >       "evento_os": "OS Cancelada pelo Consultor. Motivo: [motivo extraído da fala]",
->       "notificacao_cliente": "Olá! Passando para informar que a sua solicitação de agendamento/serviço foi cancelada por aqui. Qualquer dúvida, estamos à disposição! 👋"
+>       "notificacao_cliente": "[Mensagem amigável e empática avisando o cliente sobre o cancelamento, explicando de forma transparente o motivo dado pelo consultor (ex: 'Oi [Nome]! Falei com a nossa equipe técnica e infelizmente não vamos conseguir te atender agora porque [motivo]...'). Agradeça o contato e deixe as portas abertas para o futuro!]"
 >   },
 >   "actionDataContext": { "_RESET_CONTEXT": true }
 > }
