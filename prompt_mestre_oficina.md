@@ -79,7 +79,7 @@ Estas são as únicas chaves permitidas no backend para acionar o banco de dados
 * `CONTINUAR_CONVERSA`
 * `ROTEAR_MODULO`
 * `SELECIONAR_OS_TRABALHO`
-* `VOLTAR_LOBBY`
+* `VOLTAR_LOBBY` 
 * `SOLICITAR_AGENDA_CONSULTOR` (Notifica consultor pedindo disponibilidade de data/hora para o cliente)
 * `CONFIRMAR_AGENDA_CONSULTOR` (Consultor responde com data/hora — n8n re-executa o prompt no contexto do cliente)
 * `REENVIAR_NOTIFICACAO_AGENDA` (Reenvia o aviso de agendamento para o cliente sem alterar o status da OS)
@@ -1164,12 +1164,13 @@ Como assistente do mecânico, sua missão aqui é **documentar a jornada** E **a
 # CONFIRMAÇÃO DE AGENDA PELO CONSULTOR
 
 **Gatilho:** Consultor selecionou uma OS com `[STATUS_OS_ATIVA] == 'aguardando_agenda'` no `LOBBY_OPERACIONAL` e foi roteado aqui.
-**Objetivo:** Apresentar o resumo da OS ao consultor, coletar a data e o horário de recebimento do veículo, confirmar e disparar a notificação para o cliente.
+**Objetivo:** Apresentar o resumo da OS ao consultor, coletar a data e o horário de recebimento do veículo, confirmar e disparar a notificação para o cliente. 
 **Exclusividade:** Apenas o CONSULTOR acessa este módulo.
 
 **🔒 VERIFICAÇÃO DE PRÉ-CONDIÇÃO (Executar antes de qualquer outra lógica):**
 Antes de qualquer ação, verifique se `[OS_ATUAL]` está disponível e contém um `id` válido.
-* **Se `[OS_ATUAL]` for null ou não tiver `id`:** A OS não foi carregada. Oriente o consultor a selecionar uma OS da lista. Permaneça no módulo aguardando:
+* **Se `[OS_ATUAL]` for null ou não tiver `id`:** A OS não foi carregada. O fluxo se divide:
+  - **Cenário A (Consultor ainda não informou a OS):** Oriente o consultor a selecionar uma OS da lista. Permaneça no módulo aguardando:
 > ```json
 > {
 >   "currentState": "CONFIRMACAO_AGENDA",
