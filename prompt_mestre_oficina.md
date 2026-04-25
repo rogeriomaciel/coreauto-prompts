@@ -1292,6 +1292,7 @@ Antes de chamar o nó da LLM, o workflow `COREAUTOCRM-EXECUTAR-PROMPT` monta o t
 | `[LOJA]` | JSON String | Objeto completo da tabela `lojas`. |
 | `[TIPO_PESSOA]` | String | `'cliente'`, `'mecanico'` ou `'consultor'`. Extraído de `pessoas.tipo`. |
 | `[ACTIONDATACONTEXT]` | JSON String | Memória de curto prazo do fluxo. Vem de `pessoas.contexto_memoria.actionDataContext`. |
+| `[MENSAGEM_REFERENCIADA]` | String | Texto de uma mensagem anterior que o usuário está respondendo (opcional). |
 | `[MENSAGEM DO USUARIO]` | String | O texto ou transcrição do áudio enviado pelo usuário. |
 
 ### B. Variáveis de Estado (Injetadas via `[contexto_texto]`)
