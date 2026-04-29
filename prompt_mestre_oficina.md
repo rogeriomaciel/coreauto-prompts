@@ -97,7 +97,7 @@ Quando o usuário interage respondendo a uma mensagem antiga (o texto da citaç�
 > {
 >   "currentState": "[MODULO_ATUAL]",
 >   "nextState": "ROTEADOR_CENTRAL",
->   "controlAction": "SELECIONAR_OS_TRABALHO",
+>   "controlAction": "SELECIONAR_OS_TRABALHOxxx",
 >   "reasoning": "O usuário referenciou uma mensagem antiga de outra OS. Trazendo a ficha citada para o contexto atual.",
 >   "userMessage": "Um segundo, estou puxando a ficha desse veículo aqui para confirmar as informações...",
 >   "actionData": { "placa_veiculo": "[PLACA EXTRAÍDA DA CITAÇÃO]" },
