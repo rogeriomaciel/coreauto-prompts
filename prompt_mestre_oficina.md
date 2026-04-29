@@ -114,6 +114,7 @@ Estas são as únicas chaves permitidas no backend para acionar o banco de dados
 * `ROTEAR_MODULO`
 * `SELECIONAR_OS_TRABALHO`
 * `VOLTAR_LOBBY` 
+* `SELECIONAR_OS_REFERENCIADA`
 * `SOLICITAR_AGENDA_CONSULTOR` (Notifica consultor pedindo disponibilidade de data/hora para o cliente)
 * `CONFIRMAR_AGENDA_CONSULTOR` (Consultor responde com data/hora — n8n re-executa o prompt no contexto do cliente)
 * `REENVIAR_NOTIFICACAO_AGENDA` (Reenvia o aviso de agendamento para o cliente sem alterar o status da OS)
