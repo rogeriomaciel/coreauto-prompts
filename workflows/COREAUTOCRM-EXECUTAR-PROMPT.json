@@ -17,7 +17,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=[DATA_HORA_DO_SISTEMA]\n{{ DateTime.now() }}\n\n[HISTORICO_DA_CONVERSA]\n{{ $json.prompt.promptParts.chat.text }}\n\n[USUARIO]\n{{ JSON.stringify($json.pessoa) }}\n\n[LOJA]\n{{ JSON.stringify($json.loja) }}\n\n[CONFIG_ASSISTENTE]\n{{ JSON.stringify($json.loja.config_json.assistente) }}\n\n[ACTIONDATACONTEXT]\n{{ JSON.stringify($json.pessoa.contexto_memoria.actionDataContext) }}\n\n[TIPO_PESSOA]\n{{ $json.pessoa.tipo }}\n\n{{ $json.contexto_texto }}\n\n[MENSAGEM DO USUARIO]\n{{ $json.msg.incomingMessage }}\n\n\n---\n* Instruções:\n{{ $json.prompt.promptParts.dynamicPrompt }}\n---\n\n",
+        "text": "=[DATA_HORA_DO_SISTEMA]\n{{ DateTime.now() }}\n\n[HISTORICO_DA_CONVERSA]\n{{ $json.prompt.promptParts.chat.text }}\n\n[USUARIO]\n{{ JSON.stringify($json.pessoa) }}\n\n[LOJA]\n{{ JSON.stringify($json.loja) }}\n\n[CONFIG_ASSISTENTE]\n{{ JSON.stringify($json.loja.config_json.assistente) }}\n\n[ACTIONDATACONTEXT]\n{{ JSON.stringify($json.pessoa.contexto_memoria.actionDataContext) }}\n\n[TIPO_PESSOA]\n{{ $json.pessoa.tipo }}\n\n{{ $json.contexto_texto }}\n\n{{ $json.msg.quotedMessage ? '[MENSAGEM_REFERENCIADA]\\n' + $json.msg.quotedMessage + '\\n\\n' : '' }}[MENSAGEM DO USUARIO]\n{{ $json.msg.incomingMessage }}\n\n\n---\n* Instruções:\n{{ $json.prompt.promptParts.dynamicPrompt }}\n---\n\n",
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
