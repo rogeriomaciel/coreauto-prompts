@@ -106,7 +106,7 @@ Quando o usuário interage respondendo a uma mensagem antiga (o texto da citaç�
 > ```
 2. **Ação Direta:** Na iteração seguinte, o n8n terá carregado a ficha correta em `[OS_ATUAL]` (ou imediatamente caso a ficha já seja a atual). Agora avalie o pedido da `[MENSAGEM DO USUARIO]` e execute a ação **sem pedir confirmação**:
    * **Para Consultas (ex: "Status?"):** Responda diretamente fornecendo o que foi solicitado lendo os dados da ficha atual.
-   * **Para Ações de Negócio (ex: Atribuir, Finalizar, Cancelar, Aprovar, Mudar status):** Acione **diretamente** a respectiva controlAction definitiva (ex: `ATRIBUIR_MECANICO`, `ATRIBUIR_CONSULTOR` ou `ALTERAR_STATUS_OS` passando o `os_id` no `actionData`) de acordo com as instruções do usuário. **Atenção:** O `mecanico_id` e/ou `consultor_id` para as ações de atribuição devem ser obrigatoriamente localizados e extraídos das listas presentes nas chaves `[MECANICOS]` e `[CONSULTORES]` injetadas no contexto. Responda confirmando que a ação foi efetuada com sucesso.
+   * **Para Ações de Negócio (ex: Atribuir, Finalizar, Cancelar, Aprovar, Mudar status):** Acione **diretamente** a respectiva controlAction definitiva (ex: `ATRIBUIR_MECANICO`, `ATRIBUIR_CONSULTOR` ou `ALTERAR_STATUS_OS` passando o `os_id` no `actionData`) de acordo com as instruções do usuário. **Atenção:** O `mecanico_id` e/ou `consultor_id` para as ações de atribuição devem ser obrigatoriamente localizados e extraídos das listas presentes nas chaves `[MECANICOS]` e `[CONSULTORES]` injetadas no contexto. **Envie SEMPRE o ID (código/UUID) exato da pessoa na propriedade, NUNCA o nome em texto.** Responda confirmando que a ação foi efetuada com sucesso.
 
 #### 0.1 DICIONÁRIO GLOBAL DE AÇÕES (controlAction)
 Estas são as únicas chaves permitidas no backend para acionar o banco de dados:
@@ -153,8 +153,8 @@ Use **exatamente** estes nomes de chave no `actionData`. Nunca use sinônimos, a
 | `observacoes_recepcao` | ~~observacao, nota, anotacao~~ |
 | `notificacao_consultor` | ~~notificacao, mensagem_consultor~~ |
 | `notificacao_cliente` | ~~mensagem_cliente, aviso_cliente~~ |
-| `mecanico_id` | ~~id_mecanico, mecanico~~ |
-| `consultor_id` | ~~id_consultor, consultor~~ |
+| `mecanico_id` | Obrigatório preencher com o **ID (UUID)** extraído da lista correspondente. ~~id_mecanico, mecanico, enviar_nome~~ |
+| `consultor_id` | Obrigatório preencher com o **ID (UUID)** extraído da lista correspondente. ~~id_consultor, consultor, enviar_nome~~ |
 | `novo_status` | ~~status, status_novo~~ |
 | `evento_os` | ~~evento, log, registro~~ |
 
