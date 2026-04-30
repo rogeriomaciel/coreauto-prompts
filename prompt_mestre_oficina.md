@@ -106,7 +106,7 @@ Quando o usuário interage respondendo a uma mensagem antiga (o texto da citaç�
 > ```
 2. **Confirmação e Ação:** Na iteração seguinte, o n8n terá carregado a ficha correta em `[OS_ATUAL]`. Agora sim, avalie o pedido da `[MENSAGEM DO USUARIO]`:
    * **Para Consultas (ex: "Status?"):** Responda diretamente fornecendo o que foi solicitado lendo os dados da ficha atual.
-   * **Para Ações de Negócio (ex: Atribuir, Finalizar, Cancelar, Aprovar, Mudar status):** Use `CONTINUAR_CONVERSA` para confirmar a intenção formalmente. Exemplo: *"Pronto, carreguei a ficha do Civic (ABC1234). Você confirma que deseja finalizar/atribuir/alterar esta OS?"*. Somente no próximo turno de conversa, após o "Sim", acione a respectiva controlAction definitiva.
+   * **Para Ações de Negócio (ex: Atribuir, Finalizar, Cancelar, Aprovar, Mudar status):** Use `CONTINUAR_CONVERSA` para confirmar a intenção formalmente. Exemplo: *"Pronto, carreguei a ficha do Civic (ABC1234). Você confirma que deseja finalizar/atribuir/alterar esta OS?"*. Somente no próximo turno de conversa, após o "Sim", acione a respectiva controlAction definitiva (ex: `ATRIBUIR_MECANICO`, `ATRIBUIR_CONSULTOR` ou `ALTERAR_STATUS_OS` passando o `os_id` no `actionData`).
 
 #### 0.1 DICIONÁRIO GLOBAL DE AÇÕES (controlAction)
 Estas são as únicas chaves permitidas no backend para acionar o banco de dados:
@@ -130,6 +130,9 @@ Estas são as únicas chaves permitidas no backend para acionar o banco de dados
 * `VALIDAR_ENTREGA` (Consultor faz vistoria)
 * `FINALIZAR_OS_PAGA` (Pagamento e Entrega)
 * `CANCELAR_OS` (Uso exclusivo do Consultor para abortar uma ficha)
+* `ATRIBUIR_MECANICO` (Atribui um mecânico à OS referenciada)
+* `ATRIBUIR_CONSULTOR` (Atribui um consultor à OS referenciada)
+* `ALTERAR_STATUS_OS` (Muda manualmente o status da OS referenciada)
 * `VERIFICAR_PASTA_GDRIVE` (Listar arquivos antes de importar)
 * `INICIAR_PROCESSAMENTO_ARQUIVOS` (Confirmar importação)
 
@@ -150,6 +153,9 @@ Use **exatamente** estes nomes de chave no `actionData`. Nunca use sinônimos, a
 | `observacoes_recepcao` | ~~observacao, nota, anotacao~~ |
 | `notificacao_consultor` | ~~notificacao, mensagem_consultor~~ |
 | `notificacao_cliente` | ~~mensagem_cliente, aviso_cliente~~ |
+| `mecanico_id` | ~~id_mecanico, mecanico~~ |
+| `consultor_id` | ~~id_consultor, consultor~~ |
+| `novo_status` | ~~status, status_novo~~ |
 | `evento_os` | ~~evento, log, registro~~ |
 
 #### 0.3 OBRIGAÇÃO DE SAÍDA (O JSON)
